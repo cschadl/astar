@@ -65,6 +65,44 @@ struct neighbor_dist
 };
 
 template <size_t N>
+struct no_max_cost
+{
+	bool operator()(const size_t)
+	{
+		return false;
+	}
+};
+
+template <size_t N>
+struct max_path_cost
+{
+	size_t max;
+
+	bool operator()(const size_t)
+	{
+		return false;
+	}
+};
+
+template <>
+struct max_path_cost<3>
+{
+	bool operator()(const size_t cost)
+	{
+		return cost >= 31;
+	}
+};
+
+template <>
+struct max_path_cost<4>
+{
+	bool operator()(const size_t cost)
+	{
+		return cost >= 80;
+	}
+};
+
+template <size_t N>
 bool solve_n_sq_puzzle()
 {
 	using puzzle_t = n_sq_puzzle<N>;
@@ -79,7 +117,7 @@ bool solve_n_sq_puzzle()
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
 	auto solve_steps = 
-		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{});
+		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{}, max_path_cost<Dim>{});
 
 	if (solve_steps.empty())
 	{

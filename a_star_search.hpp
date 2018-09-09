@@ -23,13 +23,15 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
+				typename MaxCostFn,
 				typename Compare = std::less<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
 	NodeType goal_node,
 	ExpandFn	expand_fn,
 	CostFn	cost_fn,
-	WeightFn	neighbor_weight_fn)
+	WeightFn	neighbor_weight_fn,
+	MaxCostFn max_cost_fn)
 {
 	using cost_fn_t = 			decltype(cost_fn(start_node, goal_node));
 	using node_map_t =		 	std::map<NodeType, NodeType, Compare>;
@@ -105,9 +107,13 @@ std::list<NodeType> a_star_search(
 			else if (tentative_g_score >= get_node_score_(adj_node, g_score))
 				continue; // Sub-optimal path
 
+			cost_fn_t f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
+			if (max_cost_fn(f_score_))
+				continue;	// Path exceeds max cost
+
 			descendants[adj_node] = n;
 			g_score[adj_node] = tentative_g_score;
-			f_score[adj_node] = tentative_g_score + cost_fn(adj_node, goal_node);
+			f_score[adj_node] = f_score_;
 		}
 	}
 
