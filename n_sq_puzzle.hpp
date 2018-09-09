@@ -83,17 +83,11 @@ public:
 		for (int i : m_state)
 			ss1 << i;
 
-		unsigned long long state;
-		ss1 >> state;
-
 		std::stringstream ss2;
 		for (int i : rhs.m_state)
 			ss2 << i;
 
-		unsigned long long rhs_state;
-		ss2 >> rhs_state;
-
-		return state < rhs_state;
+		return ss1.str() < ss2.str();
 	}
 
 	bool is_solved() const
