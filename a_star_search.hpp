@@ -108,16 +108,16 @@ std::list<NodeType> a_star_search(
 			}
 
 			// Distance from the starting node to a neighbor
-			cost_fn_t tentative_g_score = get_node_score_(n, g_score) + neighbor_weight_fn(n, adj_node);
+			cost_fn_t const tentative_g_score = get_node_score_(n, g_score) + neighbor_weight_fn(n, adj_node);
+			cost_fn_t const f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
+
+			if (f_score_ > max_cost)
+				continue;
 
 			if (open_set.find(adj_node) == open_set.end())
 				open_set.insert(adj_node);	// Discover a new node
 			else if (tentative_g_score >= get_node_score_(adj_node, g_score))
 				continue; // Sub-optimal path
-
-			cost_fn_t f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
-			if (f_score_ > max_cost)
-				continue;	// path exceeds maximum specified cost
 
 			descendants[adj_node] = n;
 			g_score[adj_node] = tentative_g_score;
