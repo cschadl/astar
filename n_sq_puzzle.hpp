@@ -192,6 +192,14 @@ public:
 		return true;
 	}
 
+	n_sq_puzzle<N> moved(MoveType m) const
+	{
+		n_sq_puzzle<N> mp(*this);
+		mp.move(m);
+
+		return mp;
+	}
+
 	template <size_t M>
 	friend std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz);
 };

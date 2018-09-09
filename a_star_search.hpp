@@ -4,13 +4,13 @@
 #include <algorithm>
 #include <limits>
 
-template <typename T, typename Compare>
-double get_node_score_(const T& n, std::map<T, double, Compare>& node_score_map)
+template <typename T, typename Val, typename Compare>
+Val get_node_score_(const T& n, std::map<T, Val, Compare>& node_score_map)
 {
 	auto it = node_score_map.find(n);
 	if (it == node_score_map.end())
 	{
-		tie(it, std::ignore) = node_score_map.insert(std::make_pair(n, std::numeric_limits<double>::max()));
+		tie(it, std::ignore) = node_score_map.insert(std::make_pair(n, std::numeric_limits<Val>::max()));
 	}
 
 	return it->second;
@@ -31,8 +31,9 @@ std::list<NodeType> a_star_search(
 	CostFn	cost_fn,
 	WeightFn	neighbor_weight_fn)
 {
+	using cost_fn_t = 			decltype(cost_fn(start_node, goal_node));
 	using node_map_t =		 	std::map<NodeType, NodeType, Compare>;
-	using path_score_map_t = 	std::map<NodeType, double, Compare>;	// TODO - declytpe(cost_fn)?
+	using path_score_map_t = 	std::map<NodeType, cost_fn_t, Compare>;
 	using node_set_t = 			std::set<NodeType, Compare>;
 
 	node_map_t	descendants;	// For each node, which node it can be most efficiently
@@ -97,7 +98,7 @@ std::list<NodeType> a_star_search(
 			}
 
 			// Distance from the starting node to a neighbor
-			double tentative_g_score = get_node_score_(n, g_score) + neighbor_weight_fn(n, adj_node);
+			cost_fn_t tentative_g_score = get_node_score_(n, g_score) + neighbor_weight_fn(n, adj_node);
 
 			if (open_set.find(adj_node) == open_set.end())
 				open_set.insert(adj_node);	// Discover a new node

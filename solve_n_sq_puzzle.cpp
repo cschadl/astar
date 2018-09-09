@@ -22,23 +22,17 @@ struct expand
 	
 		std::array<Move, 4> moves = { Move::UP, Move::DOWN, Move::LEFT, Move::RIGHT };
 		for (const Move& m : moves)
-		{
-			n_sq_puzzle<N> next_p = p;
 			if (p.can_move(m))
-			{
-				next_p.move(m);
-				next_states.push_back(next_p);
-			}
-		}
+				next_states.push_back(p.moved(m));
 	
 		return next_states;
 	}
 };
 
 template <size_t N>
-struct heuristic
+struct misplaced_tiles 
 {
-	double operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
+	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
 	{
 		auto const& p_state_array = p.get_state();
 		auto const& goal_state_array = goal.get_state();
@@ -52,12 +46,21 @@ struct heuristic
 	}
 };
 
+//template <size_t N>
+//struct tile_taxicab_dist
+//{
+//	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
+//	{
+//
+//	}
+//};
+
 template <size_t N>
 struct neighbor_dist 
 {
-	double operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
+	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
 	{
-		return 1.0;
+		return 1;
 	}
 };
 
@@ -76,7 +79,7 @@ bool solve_n_sq_puzzle()
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
 	auto solve_steps = 
-		a_star_search(puz, puz_solved, expand<Dim>{}, heuristic<Dim>{}, neighbor_dist<Dim>{});
+		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{});
 
 	if (solve_steps.empty())
 	{
