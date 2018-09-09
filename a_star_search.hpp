@@ -3,6 +3,7 @@
 #include <list>
 #include <algorithm>
 #include <limits>
+#include <functional>
 
 template <typename T, typename Val, typename Compare>
 Val get_node_score_(const T& n, std::map<T, Val, Compare>& node_score_map)
@@ -16,6 +17,14 @@ Val get_node_score_(const T& n, std::map<T, Val, Compare>& node_score_map)
 	return it->second;
 }
 
+template <typename CostFn, typename NodeType>
+struct cost_fn_traits_
+{
+	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>(), std::declval<NodeType>()));
+	
+	static constexpr value max() { return std::numeric_limits<value>::max(); }
+};
+
 /// Implicit graph A* search
 /// @return The shortest path from the start node to the goal node,
 ///			if one exists, otherwise, return an empty list.
@@ -23,7 +32,6 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
-				typename MaxCostFn,
 				typename Compare = std::less<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
@@ -31,9 +39,9 @@ std::list<NodeType> a_star_search(
 	ExpandFn	expand_fn,
 	CostFn	cost_fn,
 	WeightFn	neighbor_weight_fn,
-	MaxCostFn max_cost_fn)
+	typename cost_fn_traits_<CostFn, NodeType>::value max_cost = cost_fn_traits_<CostFn, NodeType>::max())
 {
-	using cost_fn_t = 			decltype(cost_fn(start_node, goal_node));
+	using cost_fn_t = 			typename cost_fn_traits_<CostFn, NodeType>::value;
 	using node_map_t =		 	std::map<NodeType, NodeType, Compare>;
 	using path_score_map_t = 	std::map<NodeType, cost_fn_t, Compare>;
 	using node_set_t = 			std::set<NodeType, Compare>;
@@ -108,8 +116,8 @@ std::list<NodeType> a_star_search(
 				continue; // Sub-optimal path
 
 			cost_fn_t f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
-			if (max_cost_fn(f_score_))
-				continue;	// Path exceeds max cost
+			if (f_score_ > max_cost)
+				continue;	// path exceeds maximum specified cost
 
 			descendants[adj_node] = n;
 			g_score[adj_node] = tentative_g_score;

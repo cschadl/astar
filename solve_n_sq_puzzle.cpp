@@ -65,45 +65,7 @@ struct neighbor_dist
 };
 
 template <size_t N>
-struct no_max_cost
-{
-	bool operator()(const size_t)
-	{
-		return false;
-	}
-};
-
-template <size_t N>
-struct max_path_cost
-{
-	size_t max;
-
-	bool operator()(const size_t)
-	{
-		return false;
-	}
-};
-
-template <>
-struct max_path_cost<3>
-{
-	bool operator()(const size_t cost)
-	{
-		return cost >= 31;
-	}
-};
-
-template <>
-struct max_path_cost<4>
-{
-	bool operator()(const size_t cost)
-	{
-		return cost >= 80;
-	}
-};
-
-template <size_t N>
-bool solve_n_sq_puzzle()
+bool solve_n_sq_puzzle(size_t max_cost)
 {
 	using puzzle_t = n_sq_puzzle<N>;
 	constexpr size_t Dim = puzzle_t::Dim;
@@ -117,7 +79,7 @@ bool solve_n_sq_puzzle()
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
 	auto solve_steps = 
-		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{}, max_path_cost<Dim>{});
+		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{}, max_cost);
 
 	if (solve_steps.empty())
 	{
@@ -144,16 +106,21 @@ int main(int argc, char** argv)
 	if (argc > 1)
 		puzzle_dim = atoi(argv[1]);
 
+	size_t max_cost = std::numeric_limits<size_t>::max();
+
+	if (argc > 2)
+		max_cost = atoi(argv[2]);
+
 	switch (puzzle_dim)
 	{
 	case 2:
-		solve_n_sq_puzzle<2>();
+		solve_n_sq_puzzle<2>(max_cost);
 		break;
 	case 3:
-		solve_n_sq_puzzle<3>();
+		solve_n_sq_puzzle<3>(max_cost);
 		break;
 	case 4:
-		solve_n_sq_puzzle<4>();
+		solve_n_sq_puzzle<4>(max_cost);
 		break;
 	default:
 		std::cout << "Unsupported puzzle dimension " << puzzle_dim << endl;
