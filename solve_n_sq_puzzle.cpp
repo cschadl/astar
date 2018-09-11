@@ -46,14 +46,30 @@ struct misplaced_tiles
 	}
 };
 
-//template <size_t N>
-//struct tile_taxicab_dist
-//{
-//	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
-//	{
-//
-//	}
-//};
+template <size_t N>
+struct tile_taxicab_dist
+{
+	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
+	{
+		size_t taxicab_sum = 0;
+
+		for (size_t i = 0 ; i < (N*N) ; i++)
+		{
+			int i_p, j_p;
+			std::tie(i_p, j_p) = p.get_ij_of(i);
+
+			int i_goal, j_goal;
+			std::tie(i_goal, j_goal) = goal.get_ij_of(i);
+
+			size_t const taxicab_x = std::abs(i_goal - i_p);
+			size_t const taxicab_y = std::abs(j_goal - j_p);
+
+			taxicab_sum += (taxicab_x + taxicab_y);
+		}
+
+		return taxicab_sum;
+	}
+};
 
 template <size_t N>
 struct neighbor_dist 
@@ -61,6 +77,15 @@ struct neighbor_dist
 	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
 	{
 		return 1;
+	}
+};
+
+template <size_t N>
+struct null_heuristic
+{
+	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
+	{
+		return 0;
 	}
 };
 
@@ -79,7 +104,7 @@ bool solve_n_sq_puzzle(size_t max_cost)
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
 	auto solve_steps = 
-		a_star_search(puz, puz_solved, expand<Dim>{}, misplaced_tiles<Dim>{}, neighbor_dist<Dim>{}, max_cost);
+		a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{}, max_cost);
 
 	if (solve_steps.empty())
 	{

@@ -53,6 +53,15 @@ public:
 	const int& operator()(size_t i, size_t j) const { return m_state[N * i + j]; }
 
 	std::pair<size_t, size_t> get_space_ij() const { return row_col_from_index(m_space_index); }
+	std::pair<size_t, size_t> get_ij_of(int item) const
+	{
+		auto item_it = std::find(m_state.begin(), m_state.end(), item);
+		if (item_it == m_state.end())
+			std::terminate();	// whatever
+
+		size_t const index = std::distance(m_state.begin(), item_it);
+		return row_col_from_index(index);
+	}
 
 	const std::array<int, N * N>& get_state() const { return m_state; }
 
