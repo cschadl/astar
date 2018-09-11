@@ -1,3 +1,7 @@
+// N-square puzzle (8-puzzle, 16-puzzle, etc.)
+
+#pragma once
+
 #include <algorithm>
 #include <array>
 #include <random>
@@ -116,9 +120,9 @@ public:
 		// the puzzle is solvable iff the permutation of the
 		// remaining pieces is even.
 		//
-		// Generate a random configuration with the 0 in the last place
+		// Generate a random configuration with the 0 in the last place,
 		// test if the non-zero elements are an even permuation of
-		// the solved state
+		// the solved state.
 		// If they are, move the 0 to some other random space
 		// Unfortunately, it's not trivial to obtain the order
 		// of a permuattion, so I'm just gonna make a whole bunch

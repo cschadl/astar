@@ -1,3 +1,8 @@
+// Implicit graph A* search
+// Based on the Wikipedia pseudo-code, with some differences
+
+#pragma once
+
 #include <map>
 #include <set>
 #include <list>
@@ -26,7 +31,7 @@ struct cost_fn_traits_
 };
 
 /// Implicit graph A* search
-/// @return The shortest path from the start node to the goal node,
+/// @return The shortest path from the start node to the goal node
 ///			if one exists, otherwise, return an empty list.
 template <	typename NodeType,
 				typename ExpandFn, 
