@@ -72,20 +72,20 @@ struct tile_taxicab_dist
 };
 
 template <size_t N>
-struct neighbor_dist 
-{
-	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
-	{
-		return 1;
-	}
-};
-
-template <size_t N>
 struct null_heuristic
 {
 	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
 	{
 		return 0;
+	}
+};
+
+template <size_t N>
+struct neighbor_dist 
+{
+	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
+	{
+		return 1;
 	}
 };
 
