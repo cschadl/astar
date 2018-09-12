@@ -26,6 +26,8 @@ auto create_index_array()
 template <size_t N>
 class n_sq_puzzle
 {
+	static_assert(N > 1, "Invalid puzzle dimension");
+
 private:
 	std::array<int, N * N>	m_state;
 
