@@ -117,7 +117,7 @@ std::list<NodeType> a_star_search(
 			cost_fn_t const f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
 
 			if (f_score_ > max_cost)
-				continue;
+				break; // We won't find a better solution
 
 			if (open_set.find(adj_node) == open_set.end())
 				open_set.insert(adj_node);	// Discover a new node
