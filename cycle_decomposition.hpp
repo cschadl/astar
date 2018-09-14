@@ -13,7 +13,8 @@ std::vector< std::vector<T> > cycle_decomposition(
 	std::bitset<N> visited;
 	std::vector< std::vector<T> > cycles;
 
-	while (!visited.all())
+	bool cycles_ok = true;
+	while (!visited.all() && cycles_ok)
 	{
 		size_t cycle_start = 0;
 		// find the first unvisited bit
@@ -26,7 +27,10 @@ std::vector< std::vector<T> > cycle_decomposition(
 		do
 		{
 			if (visited[c_idx])
-				break;	// already been here
+			{
+				cycles_ok = false;
+				break;	// already been here (shoudln't happen)
+			}
 
 			visited[c_idx] = true;	// mark this visited
 			cycle.push_back(v1[c_idx]);
@@ -36,7 +40,10 @@ std::vector< std::vector<T> > cycle_decomposition(
 			// Find 'to' in v1
 			auto it_to = std::find(v1.begin(), v1.end(), to);
 			if (it_to == v1.end())
+			{
+				cycles_ok = false;
 				break;	// nope
+			}
 
 			c_idx = std::distance(v1.begin(), it_to);
 		} while (c_idx != cycle_start);
@@ -44,6 +51,9 @@ std::vector< std::vector<T> > cycle_decomposition(
 		if (cycle.size() > 1)
 			cycles.push_back(cycle);
 	}
+
+	if (!cycles_ok)
+		cycles.clear();
 
 	return cycles;
 }
