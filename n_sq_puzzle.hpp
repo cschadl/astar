@@ -10,6 +10,9 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
+
+#include "cycle_decomposition.hpp"
 
 template <typename T, size_t N, size_t... I>
 auto create_index_array_impl(std::index_sequence<I...>)
@@ -116,24 +119,60 @@ public:
 		shuffle(rd());
 	}
 
-	void shuffle(unsigned int seed)
+	void shuffle(unsigned int /* seed */)
 	{
 		// if the empty space is in the lower right hand corner,
 		// the puzzle is solvable iff the permutation of the
 		// remaining pieces is even.
 		//
 		// Generate a random configuration with the 0 in the last place,
-		// test if the non-zero elements are an even permuation of
-		// the solved state.
+		// test if the non-zero elements are an even permuation of the puzzle state.
 		// If they are, move the 0 to some other random space
-		// Unfortunately, it's not trivial to obtain the order
-		// of a permuattion, so I'm just gonna make a whole bunch
-		// of random moves for now
-		std::mt19937 gen(seed);
-		std::uniform_int_distribution<short> distr(0, 3);
-		for (size_t i = 0 ; i < 9999 ; i++)
+
+		std::random_device rd;
+
+		std::swap(m_state[m_space_index], m_state[N*N - 1]);
+		m_space_index = N*N - 1;
+
+		auto shuffled_state = create_index_array<int, N*N>();
+		std::rotate(shuffled_state.begin(), shuffled_state.begin() + 1, shuffled_state.end());
+
+		bool is_even_permutation = false;
+		while (!is_even_permutation)
 		{
-			MoveType m = static_cast<MoveType>(distr(gen));
+			std::mt19937 gen(rd());
+			std::shuffle(shuffled_state.begin(), shuffled_state.end() - 1, gen);
+			if (shuffled_state == m_state)
+				continue;
+
+			std::vector< std::vector<int> > state_cycle_decomp;
+			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
+				throw std::runtime_error("Invalid permutation of puzzle state!");	// Shouldn't happen
+
+			size_t const permutation_order = 
+				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0.0,
+					[](size_t o, const std::vector<int>& cycle)
+					{
+						o += (cycle.size() - 1);
+
+						return o;
+					});
+
+			is_even_permutation = (permutation_order % 2 == 0);
+		}
+
+		m_state = shuffled_state;
+
+		std::cout << *this << std::endl;
+
+		// Finally, move the space index to a random position in the puzzle by rotating
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<size_t> random_size_t(0, N*N - 1);
+		std::uniform_int_distribution<short> random_move(0, 3);
+		size_t move_count = random_size_t(gen);
+		for (size_t i = 0 ; i < move_count ; i++)
+		{
+			MoveType m = static_cast<MoveType>(random_move(gen));
 			move(m);
 		}
 	}

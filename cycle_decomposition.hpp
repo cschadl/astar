@@ -5,13 +5,13 @@
 #include <algorithm>
 
 /// Cycle decomposition of v1 to v2
-template <typename T, size_t N>
-std::vector< std::vector<T> > cycle_decomposition(
+template <typename T, size_t N, typename OutputIterator>
+bool cycle_decomposition(
 	const std::array<T, N>& v1,
-	const std::array<T, N>& v2)
+	const std::array<T, N>& v2,
+	OutputIterator oi)
 {
 	std::bitset<N> visited;
-	std::vector< std::vector<T> > cycles;
 
 	bool cycles_ok = true;
 	while (!visited.all() && cycles_ok)
@@ -48,12 +48,21 @@ std::vector< std::vector<T> > cycle_decomposition(
 			c_idx = std::distance(v1.begin(), it_to);
 		} while (c_idx != cycle_start);
 		
-		if (cycle.size() > 1)
-			cycles.push_back(cycle);
+		*oi++ = cycle;
 	}
 
-	if (!cycles_ok)
-		cycles.clear();
+	return cycles_ok;
+}
 
-	return cycles;
+template <typename InputIterator, typename OutputIterator>
+bool get_transpositions(InputIterator cycles_begin, InputIterator cycles_end, OutputIterator oi)
+{
+	for (auto cycle = cycles_begin; cycle != cycles_end; ++cycle)
+	{
+		auto cycle_start = cycle->begin();
+		for (auto ci = std::next(cycle_start) ; ci != cycle->end() ; ++ci)
+			*oi++ = std::make_pair(*cycle_start, *ci);
+	}
+
+	return true;
 }
