@@ -13,7 +13,7 @@ void test_n_sq_puzzle()
 	cout << "Puzzle p " << (p.is_solved() ? "(solved)" : "(not solved)") << endl;
 	cout << p << endl;
 
-	//p.shuffle(0xdeadbeef);
+	//p.shuffle(0xdeadbeee);
 	p.shuffle();
 
 	cout << "p after shuffle " << (p.is_solved() ? "(solved)" : "(not solved)") << endl;

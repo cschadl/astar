@@ -116,10 +116,17 @@ public:
 	void shuffle()
 	{
 		std::random_device rd;
-		shuffle(rd());
+		shuffle_([&rd] { return rd(); });
 	}
 
-	void shuffle(unsigned int /* seed */)
+	void shuffle(unsigned int seed)
+	{
+		shuffle_([seed] { return seed; });
+	}
+
+protected:
+	template <typename SeedFn>
+	void shuffle_(SeedFn seed_fn)
 	{
 		// if the empty space is in the lower right hand corner,
 		// the puzzle is solvable iff the permutation of the
@@ -128,9 +135,6 @@ public:
 		// Generate a random configuration with the 0 in the last place,
 		// test if the non-zero elements are an even permuation of the puzzle state.
 		// If they are, move the 0 to some other random space
-
-		std::random_device rd;
-
 		std::swap(m_state[m_space_index], m_state[N*N - 1]);
 		m_space_index = N*N - 1;
 
@@ -140,7 +144,7 @@ public:
 		bool is_even_permutation = false;
 		while (!is_even_permutation)
 		{
-			std::mt19937 gen(rd());
+			std::mt19937 gen(seed_fn());
 			std::shuffle(shuffled_state.begin(), shuffled_state.end() - 1, gen);
 			if (shuffled_state == m_state)
 				continue;
@@ -163,20 +167,20 @@ public:
 
 		m_state = shuffled_state;
 
-		std::cout << *this << std::endl;
+		// Finally, move the space index to a random position 
+		std::mt19937 gen_ij(seed_fn());
+		std::uniform_int_distribution<int> random_ij(0, 2);
+		int const space_i = random_ij(gen_ij);
+		int const space_j = random_ij(gen_ij);
 
-		// Finally, move the space index to a random position in the puzzle by rotating
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<size_t> random_size_t(0, N*N - 1);
-		std::uniform_int_distribution<short> random_move(0, 3);
-		size_t move_count = random_size_t(gen);
-		for (size_t i = 0 ; i < move_count ; i++)
-		{
-			MoveType m = static_cast<MoveType>(random_move(gen));
-			move(m);
-		}
+		for (size_t mv_left = 0; mv_left < (N - 1) - space_i ; mv_left++)
+			move(MoveType::LEFT);
+
+		for (size_t mv_up = 0; mv_up < (N - 1) - space_j ; mv_up++)
+			move(MoveType::UP);
 	}
 
+public:
 	enum class MoveType : short
 	{
 		UP,
