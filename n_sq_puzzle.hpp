@@ -128,18 +128,15 @@ protected:
 	template <typename SeedFn>
 	void shuffle_(SeedFn seed_fn)
 	{
-		// if the empty space is in the lower right hand corner,
+		// If the empty space is in the lower right hand corner,
 		// the puzzle is solvable iff the permutation of the
 		// remaining pieces is even.
 		//
 		// Generate a random configuration with the 0 in the last place,
 		// test if the non-zero elements are an even permuation of the puzzle state.
 		// If they are, move the 0 to some other random space
-		std::swap(m_state[m_space_index], m_state[N*N - 1]);
-		m_space_index = N*N - 1;
-
-		auto shuffled_state = create_index_array<int, N*N>();
-		std::rotate(shuffled_state.begin(), shuffled_state.begin() + 1, shuffled_state.end());
+		auto solved_state = n_sq_puzzle<N>().m_state;
+		auto shuffled_state = n_sq_puzzle<N>().m_state;
 
 		bool is_even_permutation = false;
 		while (!is_even_permutation)
@@ -150,7 +147,7 @@ protected:
 				continue;
 
 			std::vector< std::vector<int> > state_cycle_decomp;
-			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
+			if (!cycle_decomposition(solved_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
 				throw std::runtime_error("Invalid permutation of puzzle state!");	// Shouldn't happen
 
 			size_t const permutation_order = 
@@ -166,6 +163,7 @@ protected:
 		}
 
 		m_state = shuffled_state;
+		m_space_index = N*N - 1;
 
 		// Finally, move the space index to a random position 
 		std::mt19937 gen_ij(seed_fn());
