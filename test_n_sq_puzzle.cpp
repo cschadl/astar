@@ -16,6 +16,9 @@ void test_n_sq_puzzle()
 	//p.shuffle(0xdeadbeee);
 	p.shuffle();
 
+	// Shuffle again
+	p.shuffle();
+
 	cout << "p after shuffle " << (p.is_solved() ? "(solved)" : "(not solved)") << endl;
 	cout << p << endl;
 

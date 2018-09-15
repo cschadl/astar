@@ -135,7 +135,19 @@ protected:
 		// Generate a random configuration with the 0 in the last place,
 		// test if the non-zero elements are an even permuation of the puzzle state.
 		// If they are, move the 0 to some other random space
-		auto solved_state = n_sq_puzzle<N>().m_state;
+		
+		// First, move the empty space (0 element) to the lower right corner
+		size_t space_i, space_j;
+		std::tie(space_i, space_j) = get_space_ij();
+
+		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
+			move(MoveType::DOWN);
+		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
+			move(MoveType::RIGHT);
+
+		if (m_space_index != N*N - 1)
+			throw std::runtime_error("Error moving empty space for permutation configuration!");
+
 		auto shuffled_state = n_sq_puzzle<N>().m_state;
 
 		bool is_even_permutation = false;
@@ -147,7 +159,7 @@ protected:
 				continue;
 
 			std::vector< std::vector<int> > state_cycle_decomp;
-			if (!cycle_decomposition(solved_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
+			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
 				throw std::runtime_error("Invalid permutation of puzzle state!");	// Shouldn't happen
 
 			size_t const permutation_order = 
@@ -168,14 +180,18 @@ protected:
 		// Finally, move the space index to a random position 
 		std::mt19937 gen_ij(seed_fn());
 		std::uniform_int_distribution<int> random_ij(0, 2);
-		int const space_i = random_ij(gen_ij);
-		int const space_j = random_ij(gen_ij);
+		space_i = random_ij(gen_ij);
+		space_j = random_ij(gen_ij);
 
-		for (size_t mv_left = 0; mv_left < (N - 1) - space_i ; mv_left++)
+		for (size_t mv_up = 0; mv_up < (N - 1) - space_i ; mv_up++)
+			move(MoveType::UP);
+		for (size_t mv_left = 0; mv_left < (N - 1) - space_j ; mv_left++)
 			move(MoveType::LEFT);
 
-		for (size_t mv_up = 0; mv_up < (N - 1) - space_j ; mv_up++)
-			move(MoveType::UP);
+#ifdef DEBUG
+		if (get_space_ij() != std::make_pair(space_i, space_j))
+			throw std::runtime_error("Space i, j mismatch!");
+#endif
 	}
 
 public:
