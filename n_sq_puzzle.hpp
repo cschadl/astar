@@ -179,7 +179,7 @@ protected:
 
 		// Finally, move the space index to a random position 
 		std::mt19937 gen_ij(seed_fn());
-		std::uniform_int_distribution<int> random_ij(0, 2);
+		std::uniform_int_distribution<int> random_ij(0, N - 1);
 		space_i = random_ij(gen_ij);
 		space_j = random_ij(gen_ij);
 
