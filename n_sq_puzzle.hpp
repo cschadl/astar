@@ -163,7 +163,7 @@ protected:
 				throw std::runtime_error("Invalid permutation of puzzle state!");	// Shouldn't happen
 
 			size_t const permutation_order = 
-				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0.0,
+				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
 					[](size_t o, const std::vector<int>& cycle)
 					{
 						o += (cycle.size() - 1);
