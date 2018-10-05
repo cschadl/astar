@@ -30,9 +30,11 @@ template <size_t N>
 class n_sq_puzzle
 {
 	static_assert(N > 1, "Invalid puzzle dimension");
+public:
+	using state_t = std::array<int, N*N>;
 
 private:
-	std::array<int, N * N>	m_state;
+	state_t	m_state;
 
 	size_t m_space_index;	// Index of empty space in puzzle (0 in m_state)
 
@@ -48,12 +50,36 @@ public:
 	static constexpr size_t Dim = N;
 
 	/// Creates a n_sq_puzzle in the solved configuration.
-	/// Use shuffle() to shuffle the puzzle state to a random configuration.
+	/// Use shuffle() to shuffle the puzzle state to a random configuration. boom
 	n_sq_puzzle()
 		: m_state(create_index_array<int, N * N>())
 	{
 		std::rotate(m_state.begin(), m_state.begin() + 1, m_state.end());
 		m_space_index = N * N - 1;
+	}
+
+	bool set(state_t const& state)
+	{
+		auto space_it = std::find(state.begin(), state.end(), 0);
+		if (space_it == state.end())
+			return false;
+
+		auto prev_state = m_state;
+		size_t prev_space_index = m_space_index;
+
+		m_state = state;
+		m_space_index = std::distance(state.begin(), space_it);
+
+		if (!shuffle())
+		{
+			// state is not a permutation of the solved state
+			m_state = prev_state;
+			m_space_index = prev_space_index;
+
+			return false;
+		}
+
+		return true;
 	}
 
 	static constexpr size_t size() { return N; }
@@ -62,6 +88,7 @@ public:
 	const int& operator()(size_t i, size_t j) const { return m_state[N * i + j]; }
 
 	std::pair<size_t, size_t> get_space_ij() const { return row_col_from_index(m_space_index); }
+
 	std::pair<size_t, size_t> get_ij_of(int item) const
 	{
 		auto item_it = std::find(m_state.begin(), m_state.end(), item);
@@ -72,7 +99,7 @@ public:
 		return row_col_from_index(index);
 	}
 
-	const std::array<int, N * N>& get_state() const { return m_state; }
+	const state_t& get_state() const { return m_state; }
 
 	bool operator==(const std::array< std::array<int, N>, N> & rhs) const
 	{
@@ -113,20 +140,20 @@ public:
 		return *this == n_sq_puzzle<N>();
 	}
 
-	void shuffle()
+	bool shuffle()
 	{
 		std::random_device rd;
-		shuffle_([&rd] { return rd(); });
+		return shuffle_([&rd] { return rd(); });
 	}
 
-	void shuffle(unsigned int seed)
+	bool shuffle(unsigned int seed)
 	{
-		shuffle_([seed] { return seed; });
+		return shuffle_([seed] { return seed; });
 	}
 
 protected:
 	template <typename SeedFn>
-	void shuffle_(SeedFn seed_fn)
+	bool shuffle_(SeedFn seed_fn)
 	{
 		// If the empty space is in the lower right hand corner,
 		// the puzzle is solvable iff the permutation of the
@@ -160,7 +187,7 @@ protected:
 
 			std::vector< std::vector<int> > state_cycle_decomp;
 			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
-				throw std::runtime_error("Invalid permutation of puzzle state!");	// Shouldn't happen
+				return false;	// state is not a permutation of the original state
 
 			size_t const permutation_order = 
 				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
@@ -192,6 +219,8 @@ protected:
 		if (get_space_ij() != std::make_pair(space_i, space_j))
 			throw std::runtime_error("Space i, j mismatch!");
 #endif
+
+		return true;
 	}
 
 public:

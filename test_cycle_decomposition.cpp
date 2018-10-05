@@ -13,12 +13,13 @@ int main(int argc, char** argv)
 	//std::array<int, 5> a2 = { 5, 4, 3, 2, 1 };
 	//
 	std::array<int, 8> a1 = { 1, 2, 3, 4, 5, 6, 7, 8 };
-	//std::array<int, 8> a2 = { 2, 4, 7, 5, 8, 1, 3, 6 };
+	//std::array<int, 8> a2 = { 8, 6, 5, 7, 3, 1, 2, 4 };
+	std::array<int, 8> a2 = { 8, 6, 5, 7, 8, 1, 2, 4 };
 	//
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::array<int, 8> a2 = a1;
-	std::shuffle(a2.begin(), a2.end(), gen);
+//	std::random_device rd;
+//	std::mt19937 gen(rd());
+//	std::array<int, 8> a2 = a1;
+//	std::shuffle(a2.begin(), a2.end(), gen);
 
 	std::cout << "a1: ( ";
 	for (auto it = a1.begin(); it != a1.end(); ++it)
