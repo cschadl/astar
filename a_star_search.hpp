@@ -67,7 +67,7 @@ struct node_goal_cost_estimate
 	bool operator<(node_goal_cost_estimate const& rhs) const
 	{
 		//if (cost != rhs.cost)
-			return cost < rhs.cost;
+			return cost >= rhs.cost;	// min-priority queue, so this is flipped
 
 		//return node_index < rhs.node_index;
 	}
@@ -163,6 +163,7 @@ std::list<NodeType> a_star_search(
 				continue;	// Sub-optimal path
 
 			adj_node_it->second.desc = n_it;
+			adj_node_it->second.cost_to_node = tentative_g_score;
 
 			fringe.emplace(node_goal_cost_est_t{adj_node_it, f_score_});
 		}
