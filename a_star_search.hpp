@@ -13,18 +13,6 @@
 #include <optional>
 #include <utility>
 
-template <typename T, typename Val, typename Compare>
-Val get_node_score_(const T& n, std::map<T, Val, Compare>& node_score_map)
-{
-	auto it = node_score_map.find(n);
-	if (it == node_score_map.end())
-	{
-		tie(it, std::ignore) = node_score_map.insert(std::make_pair(n, std::numeric_limits<Val>::max()));
-	}
-
-	return it->second;
-}
-
 template <typename CostFn, typename NodeType>
 struct cost_fn_traits_
 {
