@@ -66,10 +66,7 @@ struct node_goal_cost_estimate
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
 	{
-		//if (cost != rhs.cost)
-			return cost >= rhs.cost;	// min-priority queue, so this is flipped
-
-		//return node_index < rhs.node_index;
+		return cost >= rhs.cost;	// min-priority queue, so this is flipped
 	}
 };
 
