@@ -102,6 +102,9 @@ std::list<NodeType> a_star_search(
 		auto min_cost_node = fringe.top();
 		fringe.pop();
 
+		if (min_cost_node.cost > max_cost)
+			break; // We won't find a better solution
+
 		NodeType n = min_cost_node.node_index->first;
 
 		if (n == goal_node)
@@ -139,9 +142,6 @@ std::list<NodeType> a_star_search(
 			// Distance from the starting node to a neighbor
 			cost_fn_t const tentative_g_score = n_info.cost_to_node + neighbor_weight_fn(n, adj_node);
 			cost_fn_t const f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
-
-			if (f_score_ > max_cost)
-				break; // We won't find a better solution
 
 			if (adj_node_it == nodes.end())
 			{
