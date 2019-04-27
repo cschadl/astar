@@ -27,12 +27,17 @@ enum class NodeSetType
 	CLOSED
 };
 
+template <typename NodeType, typename InfoType, typename Compare>
+using node_map_iterator_t = typename std::map<NodeType, InfoType, Compare>::iterator;
+
 template <typename NodeType, typename CostFn, typename Compare>
 struct node_info
 {
+	using iterator_t = node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare>;
+
 	NodeSetType type;
+	iterator_t desc;
 	typename cost_fn_traits_<CostFn, NodeType>::value cost_to_node;
-	typename std::map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>::iterator desc;
 
 	node_info() = delete;
 
@@ -47,7 +52,7 @@ struct node_info
 template <typename NodeType, typename CostFn, typename Compare>
 struct node_goal_cost_estimate
 {
-	using index_t = typename std::map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>::iterator;
+	using index_t = typename node_info<NodeType, CostFn, Compare>::iterator_t;
 
 	index_t	node_index;
 	typename cost_fn_traits_<CostFn, NodeType>::value cost;
@@ -76,12 +81,11 @@ std::list<NodeType> a_star_search(
 	WeightFn	neighbor_weight_fn,
 	typename cost_fn_traits_<CostFn, NodeType>::value max_cost = cost_fn_traits_<CostFn, NodeType>::max())
 {
-	using cost_fn_t = 			typename cost_fn_traits_<CostFn, NodeType>::value;
-
-	using node_goal_cost_est_t = node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using fringe_pq_t = std::priority_queue<node_goal_cost_est_t>;
-	using node_info_t = node_info<NodeType, CostFn, Compare>;
-	using node_collection_t = std::map<NodeType, node_info_t, Compare>;
+	using cost_fn_t = 				typename cost_fn_traits_<CostFn, NodeType>::value;
+	using node_goal_cost_est_t =	node_goal_cost_estimate<NodeType, CostFn, Compare>;
+	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
+	using node_info_t = 				node_info<NodeType, CostFn, Compare>;
+	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
 																
 	fringe_pq_t fringe;
 	node_collection_t nodes;
