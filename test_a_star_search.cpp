@@ -7,6 +7,7 @@
 #include "a_star_search.hpp"
 
 using namespace std;
+using namespace cds::astar;
 
 namespace
 {

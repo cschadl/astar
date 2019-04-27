@@ -10,6 +10,7 @@
 #include "a_star_search.hpp"
 
 using namespace std;
+using namespace cds::astar;
 
 template <size_t N>
 struct expand

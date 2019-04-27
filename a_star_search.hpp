@@ -12,8 +12,17 @@
 #include <queue>
 #include <utility>
 
+namespace cds
+{
+
+namespace astar
+{
+
+namespace detail_
+{
+
 template <typename CostFn, typename NodeType>
-struct cost_fn_traits_
+struct cost_fn_traits
 {
 	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>(), std::declval<NodeType>()));
 	
@@ -36,7 +45,7 @@ struct node_info
 
 	NodeSetType type;
 	iterator_t desc;
-	typename cost_fn_traits_<CostFn, NodeType>::value cost_to_node;
+	typename cost_fn_traits<CostFn, NodeType>::value cost_to_node;
 
 	node_info() = delete;
 
@@ -54,7 +63,7 @@ struct node_goal_cost_estimate
 	using index_t = typename node_info<NodeType, CostFn, Compare>::iterator_t;
 
 	index_t	node_index;
-	typename cost_fn_traits_<CostFn, NodeType>::value cost;
+	typename cost_fn_traits<CostFn, NodeType>::value cost;
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
 	{
@@ -62,7 +71,7 @@ struct node_goal_cost_estimate
 	}
 };
 
-
+} // namespace detail_
 
 /// Implicit graph A* search
 /// @return The shortest path from the start node to the goal node
@@ -78,13 +87,14 @@ std::list<NodeType> a_star_search(
 	ExpandFn	expand_fn,
 	CostFn	cost_fn,
 	WeightFn	neighbor_weight_fn,
-	typename cost_fn_traits_<CostFn, NodeType>::value max_cost = cost_fn_traits_<CostFn, NodeType>::max())
+	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
-	using cost_fn_t = 				typename cost_fn_traits_<CostFn, NodeType>::value;
-	using node_goal_cost_est_t =	node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
-	using node_info_t = 				node_info<NodeType, CostFn, Compare>;
+	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
+	using fringe_pq_t = 			std::priority_queue<node_goal_cost_est_t>;
+	using node_info_t = 			detail_::node_info<NodeType, CostFn, Compare>;
 	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
+	using detail_::NodeSetType;
 																
 	fringe_pq_t fringe;
 	node_collection_t nodes;
@@ -161,7 +171,9 @@ std::list<NodeType> a_star_search(
 	return path;
 }
 
+} // namespace astar
 
+} // namespace cds
 
 
 
