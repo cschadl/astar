@@ -10,6 +10,7 @@
 #include "a_star_search.hpp"
 
 using namespace std;
+using namespace cds::astar;
 
 template <size_t N>
 struct expand
@@ -96,9 +97,7 @@ bool solve_n_sq_puzzle(size_t max_cost)
 	constexpr size_t Dim = puzzle_t::Dim;
 
 	puzzle_t puz;
-
-	for (size_t i = 0 ; i < 100 ; i++)
-		puz.shuffle();
+	puz.shuffle();
 
 	puzzle_t puz_solved;
 
