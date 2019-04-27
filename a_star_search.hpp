@@ -10,7 +10,6 @@
 #include <limits>
 #include <functional>
 #include <queue>
-#include <optional>
 #include <utility>
 
 template <typename CostFn, typename NodeType>
