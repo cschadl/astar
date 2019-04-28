@@ -114,21 +114,22 @@ std::list<NodeType> a_star_search(
 		if (min_cost_node.cost > max_cost)
 			break; // We won't find a better solution
 
-		NodeType n = min_cost_node.node_index->first;
+		NodeType const& n = min_cost_node.node_index->first;
 
 		if (n == goal_node)
 		{
-			path.push_front(n);
+			NodeType next = n;
+			path.push_front(next);
 
 			// Reconstruct path and return
-			while (n != start_node)
+			while (next != start_node)
 			{
-				auto n_it = nodes.find(n)->second;
+				auto n_it = nodes.find(next)->second;
 				auto desc_it = n_it.desc;
 
-				n = desc_it->first;
+				next = desc_it->first;
 
-				path.push_front(n);
+				path.push_front(next);
 			}
 			
 			return path;
@@ -150,7 +151,7 @@ std::list<NodeType> a_star_search(
 
 			// Distance from the starting node to a neighbor
 			cost_fn_t const tentative_g_score = n_info.cost_to_node + neighbor_weight_fn(n, adj_node);
-			cost_fn_t const f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
+			cost_fn_t const f_score = tentative_g_score + cost_fn(adj_node, goal_node);
 
 			if (adj_node_it == nodes.end())
 			{
@@ -163,7 +164,7 @@ std::list<NodeType> a_star_search(
 			adj_node_it->second.desc = n_it;
 			adj_node_it->second.cost_to_node = tentative_g_score;
 
-			fringe.emplace(node_goal_cost_est_t{adj_node_it, f_score_});
+			fringe.emplace(node_goal_cost_est_t{adj_node_it, f_score});
 		}
 	}
 
