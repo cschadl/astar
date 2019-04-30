@@ -22,9 +22,9 @@ namespace detail_
 {
 
 template <typename CostFn, typename NodeType>
-struct cost_fn_traits
+struct cost_to_goal_traits
 {
-	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>(), std::declval<NodeType>()));
+	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>()));
 	
 	static constexpr value max() { return std::numeric_limits<value>::max(); }
 };
@@ -45,7 +45,7 @@ struct node_info
 
 	NodeSetType type;
 	iterator_t desc;
-	typename cost_fn_traits<CostFn, NodeType>::value cost_to_node;
+	typename cost_to_goal_traits<CostFn, NodeType>::value cost_to_node;
 
 	node_info() = delete;
 
@@ -63,7 +63,7 @@ struct node_goal_cost_estimate
 	using index_t = typename node_info<NodeType, CostFn, Compare>::iterator_t;
 
 	index_t	node_index;
-	typename cost_fn_traits<CostFn, NodeType>::value cost;
+	typename cost_to_goal_traits<CostFn, NodeType>::value cost;
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
 	{
@@ -80,28 +80,28 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
+				typename IsGoalFn,
 				typename Compare = std::less<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
-	NodeType goal_node,
-	ExpandFn	expand_fn,
-	CostFn	cost_fn,
-	WeightFn	neighbor_weight_fn,
-	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
+	ExpandFn	expand,
+	CostFn	cost_to_goal,
+	WeightFn	neighbor_weight,
+	IsGoalFn is_goal,
+	typename detail_::cost_to_goal_traits<CostFn, NodeType>::value max_cost = detail_::cost_to_goal_traits<CostFn, NodeType>::max())
 {
-	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using cost_to_goal_t = 			typename detail_::cost_to_goal_traits<CostFn, NodeType>::value;
 	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
 	using node_info_t = 				detail_::node_info<NodeType, CostFn, Compare>;
 	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
 	using detail_::NodeSetType;
 																
-	fringe_pq_t fringe;
+	std::priority_queue<node_goal_cost_est_t> fringe;
 	node_collection_t nodes;
 	{
 		typename node_collection_t::iterator start_node_it;
 		tie(start_node_it, std::ignore) = nodes.emplace(std::make_pair(start_node, node_info_t(NodeSetType::OPEN, 0.0)));
-		fringe.emplace(node_goal_cost_est_t{start_node_it, cost_fn(start_node, goal_node)});
+		fringe.emplace(node_goal_cost_est_t{start_node_it, cost_to_goal(start_node)});
 	}
 
 	std::list<NodeType> path;
@@ -116,7 +116,7 @@ std::list<NodeType> a_star_search(
 
 		NodeType n = min_cost_node.node_index->first;
 
-		if (n == goal_node)
+		if (is_goal(n))
 		{
 			path.push_front(n);
 
@@ -138,7 +138,7 @@ std::list<NodeType> a_star_search(
 		node_info_t& n_info = n_it->second;
 		n_info.type = NodeSetType::CLOSED;
 
-		auto neighbors = expand_fn(n);
+		auto neighbors = expand(n);
 		for (auto adj_node : neighbors)
 		{
 			auto adj_node_it = nodes.find(adj_node);
@@ -149,8 +149,8 @@ std::list<NodeType> a_star_search(
 			}
 
 			// Distance from the starting node to a neighbor
-			cost_fn_t const tentative_g_score = n_info.cost_to_node + neighbor_weight_fn(n, adj_node);
-			cost_fn_t const f_score_ = tentative_g_score + cost_fn(adj_node, goal_node);
+			cost_to_goal_t const tentative_g_score = n_info.cost_to_node + neighbor_weight(n, adj_node);
+			cost_to_goal_t const f_score_ = tentative_g_score + cost_to_goal(adj_node);
 
 			if (adj_node_it == nodes.end())
 			{
