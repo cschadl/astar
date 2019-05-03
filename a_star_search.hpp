@@ -10,6 +10,7 @@
 #include <limits>
 #include <functional>
 #include <queue>
+#include <stack>
 #include <utility>
 
 namespace cds
@@ -70,6 +71,65 @@ struct node_goal_cost_estimate
 		return cost >= rhs.cost;	// min-priority queue, so this is flipped
 	}
 };
+
+template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename Compare>
+std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value> ida_search(
+		std::stack< node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare> >& path,
+		std::map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>& node_set,
+		CostFn cost_fn,
+		ExpandFn expand,
+		NeighborWeightFn neighbor_weight,
+		NodeType goal_node,
+		typename cost_fn_traits<CostFn, NodeType>::value cost_to_current_node,
+		typename cost_fn_traits<CostFn, NodeType>::value bound)
+{
+	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
+	using node_info_t = node_info<NodeType, CostFn, Compare>;
+
+	auto& node_it = path.top();
+	NodeType const& node = node_it->first;
+
+	cost_t f = cost_to_current_node + cost_fn(node, goal_node);
+
+	if (f > bound)
+		return make_pair(false, f);
+
+	if (node == goal_node)
+		return make_pair(true, f);
+
+	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
+
+	for (NodeType const& adj_node : expand(node))
+	{
+		auto adj_node_it = node_set.find(adj_node);
+		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
+		{
+			tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::OPEN, 0.0 }));
+
+			path.push(adj_node_it);
+
+			// TODO - no more recursion
+			std::pair<bool, cost_t> t =
+					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, Compare>(
+							path,
+							node_set, cost_fn,
+							neighbor_weight,
+							goal_node,
+							cost_to_current_node + neighbor_weight(adj_node), bound);
+
+			if (t.first)
+				return t;
+
+			if (t.second < min)
+				min = t.second;
+
+			path.pop();
+			adj_node_it->second.type = NodeSetType::CLOSED;	// Mark this node visited (no longer in path)
+		}
+	}
+
+	return make_pair(false, min);
+}
 
 } // namespace detail_
 
@@ -172,9 +232,82 @@ std::list<NodeType> a_star_search(
 	return path;
 }
 
+template <	typename NodeType,
+				typename ExpandFn,
+				typename CostFn,
+				typename WeightFn,
+				typename Compare = std::less<NodeType>	>
+std::pair<std::list<NodeType>, typename detail_::cost_fn_traits<CostFn, NodeType>::value>
+ida_star_search(NodeType start_node,
+					 NodeType goal_node,
+					 ExpandFn expand,
+					 CostFn cost_fn,
+					 WeightFn neighbor_weight_fn)
+{
+	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using node_info_t = detail_::node_info<NodeType, CostFn, Compare>;
+	using node_set_t = std::map<NodeType, node_info_t, Compare>;
+
+	cost_t bound = cost_fn(start_node, goal_node);
+
+	node_set_t node_set;
+	std::stack<typename node_set_t::iterator> path;
+
+	typename node_set_t::iterator root_it;
+	std::tie(root_it, std::ignore) = node_set.insert(make_pair(start_node, node_info_t(detail_::NodeSetType::OPEN, 0.0)));
+	path.push(root_it);
+
+	while (true)
+	{
+		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
+		bool found = false;
+
+		tie(found, t) = detail_::ida_search<NodeType, ExpandFn, CostFn, WeightFn, Compare>(
+				path,
+				node_set,
+				cost_fn, expand, neighbor_weight_fn,
+				goal_node, 0.0, bound);
+
+		if (found)
+			return make_pair(path, bound);
+
+		if (t == detail_::cost_fn_traits<CostFn, NodeType>::max())
+			break;	// No path exists
+
+		bound = t;
+	}
+
+	return make_pair(std::list<NodeType>(), bound);
+}
+
 } // namespace astar
 
 } // namespace cds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
