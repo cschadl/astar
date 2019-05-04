@@ -137,7 +137,10 @@ int main(int argc, char** argv)
 	node start_node(start_x, start_y, grid_index(start_x, start_y));
 	node goal_node(goal_x, goal_y, grid_index(goal_x, goal_y));
 
-	list<node> path = a_star_search(start_node, goal_node, &expand, h_fn, &node_dist, 100.0);
+	list<node> path;
+	double cost;
+	tie(path, cost) = ida_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
+
 	if (path.empty())
 		cout << "Couldn't find path to goal" << endl;
 	else
