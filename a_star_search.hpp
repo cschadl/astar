@@ -105,7 +105,7 @@ auto ida_search(
 		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
 		{
 			if (adj_node_it == node_set.end())
-				tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::OPEN, 0.0 }));
+				tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, 0.0 }));
 
 			path.push(adj_node_it);
 
@@ -127,7 +127,7 @@ auto ida_search(
 				min = t.second;
 
 			path.pop();
-			adj_node_it->second.type = NodeSetType::CLOSED;	// Mark this node visited (no longer in path)
+			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node visited (no longer in path)
 		}
 	}
 
