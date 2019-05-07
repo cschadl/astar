@@ -104,8 +104,12 @@ bool solve_n_sq_puzzle(size_t max_cost)
 	std::cout << "Start puzzle state:" << endl << puz << endl << endl;
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
-	auto solve_steps = 
-		a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{}, max_cost);
+	//auto solve_steps =
+	//	a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{}, max_cost);
+
+	std::list<puzzle_t> solve_steps;
+	tie(solve_steps, std::ignore) =
+		ida_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{});
 
 	if (solve_steps.empty())
 	{
