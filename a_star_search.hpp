@@ -127,7 +127,7 @@ auto ida_search(
 				min = t.second;
 
 			path.pop();
-			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node visited (no longer in path)
+			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node as longer in path
 		}
 	}
 
