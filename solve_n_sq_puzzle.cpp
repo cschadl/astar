@@ -5,6 +5,7 @@
 #include <functional>
 #include <numeric>
 #include <list>
+#include <cstring>
 
 #include "n_sq_puzzle.hpp"
 #include "a_star_search.hpp"
@@ -54,7 +55,8 @@ struct tile_taxicab_dist
 	{
 		size_t taxicab_sum = 0;
 
-		for (size_t i = 0 ; i < (N*N) ; i++)
+		// start at 1, since we don't want to include the empty space
+		for (size_t i = 1 ; i < (N*N) ; i++)
 		{
 			int i_p, j_p;
 			std::tie(i_p, j_p) = p.get_ij_of(i);
@@ -91,7 +93,7 @@ struct neighbor_dist
 };
 
 template <size_t N>
-bool solve_n_sq_puzzle(size_t max_cost)
+bool solve_n_sq_puzzle(size_t max_cost, bool use_ida_search)
 {
 	using puzzle_t = n_sq_puzzle<N>;
 	constexpr size_t Dim = puzzle_t::Dim;
@@ -104,12 +106,13 @@ bool solve_n_sq_puzzle(size_t max_cost)
 	std::cout << "Start puzzle state:" << endl << puz << endl << endl;
 	std::cout << "Goal puzzle state:" << endl << puz_solved << endl << endl;
 
-	//auto solve_steps =
-	//	a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{}, max_cost);
-
 	std::list<puzzle_t> solve_steps;
-	tie(solve_steps, std::ignore) =
-		ida_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{});
+
+	if (use_ida_search)
+		tie(solve_steps, std::ignore) =
+			ida_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{});
+	else
+		solve_steps = a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{},neighbor_dist<Dim>{}, max_cost);
 
 	if (solve_steps.empty())
 	{
@@ -140,17 +143,26 @@ int main(int argc, char** argv)
 
 	if (argc > 2)
 		max_cost = atoi(argv[2]);
+	if (max_cost == 0)
+	{
+		std::cerr << "Invalid max cost value: " << argv[2] << endl;
+		return 1;
+	}
+
+	bool use_ida = false;
+	if (argc > 3 && ::strcmp(argv[3], "-ida") == 0)
+		use_ida = true;
 
 	switch (puzzle_dim)
 	{
 	case 2:
-		solve_n_sq_puzzle<2>(max_cost);
+		solve_n_sq_puzzle<2>(max_cost, use_ida);
 		break;
 	case 3:
-		solve_n_sq_puzzle<3>(max_cost);
+		solve_n_sq_puzzle<3>(max_cost, use_ida);
 		break;
 	case 4:
-		solve_n_sq_puzzle<4>(max_cost);
+		solve_n_sq_puzzle<4>(max_cost, use_ida);
 		break;
 	default:
 		std::cout << "Unsupported puzzle dimension " << puzzle_dim << endl;

@@ -131,15 +131,22 @@ int main(int argc, char** argv)
 	int goal_y = argc > 5 ? std::atoi(argv[4]) : 12;
 
 	auto h_fn = &node_dist;
+	bool use_ida = false;
+
 	if (argc >= 6 && strcmp(argv[5], "-zero") == 0)
 		h_fn = &zero_heuristic;
+	else if (argc >= 6 && strcmp(argv[5], "-ida") == 0)
+		use_ida = true;
 
 	node start_node(start_x, start_y, grid_index(start_x, start_y));
 	node goal_node(goal_x, goal_y, grid_index(goal_x, goal_y));
 
 	list<node> path;
-	double cost;
-	tie(path, cost) = ida_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
+
+	if (use_ida)
+		tie(path, std::ignore) = ida_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
+	else
+		path = a_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
 
 	if (path.empty())
 		cout << "Couldn't find path to goal" << endl;
