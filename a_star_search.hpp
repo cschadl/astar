@@ -72,68 +72,6 @@ struct node_goal_cost_estimate
 	}
 };
 
-template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename Compare>
-auto ida_search(
-		std::stack< node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare> >& path,
-		std::map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>& node_set,
-		CostFn cost_fn,
-		ExpandFn expand,
-		NeighborWeightFn neighbor_weight,
-		NodeType goal_node,
-		typename cost_fn_traits<CostFn, NodeType>::value cost_to_current_node,
-		typename cost_fn_traits<CostFn, NodeType>::value bound) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
-{
-	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
-	using node_info_t = node_info<NodeType, CostFn, Compare>;
-
-	auto& node_it = path.top();
-	NodeType const& node = node_it->first;
-
-	cost_t f = cost_to_current_node + cost_fn(node, goal_node);
-
-	if (f > bound)
-		return std::make_pair(false, f);
-
-	if (node == goal_node)
-		return std::make_pair(true, f);
-
-	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
-
-	for (NodeType const& adj_node : expand(node))
-	{
-		auto adj_node_it = node_set.find(adj_node);
-		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
-		{
-			if (adj_node_it == node_set.end())
-				tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, 0.0 }));
-
-			path.push(adj_node_it);
-
-			// TODO - no more recursion
-			std::pair<bool, cost_t> t =
-					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, Compare>(
-							path,
-							node_set,
-							cost_fn, expand,
-							neighbor_weight,
-							goal_node,
-							cost_to_current_node + neighbor_weight(node, adj_node),
-							bound);
-
-			if (t.first)
-				return t;
-
-			if (t.second < min)
-				min = t.second;
-
-			path.pop();
-			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node as longer in path
-		}
-	}
-
-	return std::make_pair(false, min);
-}
-
 } // namespace detail_
 
 /// Implicit graph A* search
@@ -234,6 +172,73 @@ std::list<NodeType> a_star_search(
 	// No path exists
 	return path;
 }
+
+namespace detail_
+{
+
+template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename Compare>
+auto ida_search(
+		std::stack< node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare> >& path,
+		std::map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>& node_set,
+		CostFn cost_fn,
+		ExpandFn expand,
+		NeighborWeightFn neighbor_weight,
+		NodeType goal_node,
+		typename cost_fn_traits<CostFn, NodeType>::value cost_to_current_node,
+		typename cost_fn_traits<CostFn, NodeType>::value bound) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
+{
+	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
+	using node_info_t = node_info<NodeType, CostFn, Compare>;
+
+	auto& node_it = path.top();
+	NodeType const& node = node_it->first;
+
+	cost_t f = cost_to_current_node + cost_fn(node, goal_node);
+
+	if (f > bound)
+		return std::make_pair(false, f);
+
+	if (node == goal_node)
+		return std::make_pair(true, f);
+
+	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
+
+	for (NodeType const& adj_node : expand(node))
+	{
+		auto adj_node_it = node_set.find(adj_node);
+		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
+		{
+			if (adj_node_it == node_set.end())
+				tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, 0.0 }));
+
+			path.push(adj_node_it);
+
+			// TODO - no more recursion
+			std::pair<bool, cost_t> t =
+					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, Compare>(
+							path,
+							node_set,
+							cost_fn, expand,
+							neighbor_weight,
+							goal_node,
+							cost_to_current_node + neighbor_weight(node, adj_node),
+							bound);
+
+			if (t.first)
+				return t;
+
+			if (t.second < min)
+				min = t.second;
+
+			path.pop();
+			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node as longer in path
+		}
+	}
+
+	return std::make_pair(false, min);
+}
+
+} // detail
 
 template <	typename NodeType,
 				typename ExpandFn,
