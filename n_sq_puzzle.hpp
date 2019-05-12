@@ -50,7 +50,7 @@ public:
 	static constexpr size_t Dim = N;
 
 	/// Creates a n_sq_puzzle in the solved configuration.
-	/// Use shuffle() to shuffle the puzzle state to a random configuration. boom
+	/// Use shuffle() to shuffle the puzzle state to a random configuration.
 	n_sq_puzzle()
 		: m_state(create_index_array<int, N * N>())
 	{
@@ -64,22 +64,43 @@ public:
 		if (space_it == state.end())
 			return false;
 
-		auto prev_state = m_state;
-		size_t prev_space_index = m_space_index;
+		size_t space_index = std::distance(state.begin(), space_it);
 
-		m_state = state;
-		m_space_index = std::distance(state.begin(), space_it);
+		// First, move the empty space (0 element) to the lower right corner
+		n_sq_puzzle<N> test_puz;
+		test_puz.m_state = state;
+		test_puz.m_space_index = space_index;
 
-		if (!shuffle())
+		size_t space_i, space_j;
+		std::tie(space_i, space_j) = test_puz.get_space_ij();
+
+		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
+			test_puz.move(MoveType::DOWN);
+		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
+			test_puz.move(MoveType::RIGHT);
+
+		std::vector< std::vector<int> > state_cycle_decomp;
+		if (!cycle_decomposition(m_state, test_puz.m_state, std::back_inserter(state_cycle_decomp)))
+			return false;	// state is not a permutation of the original state
+
+		size_t const permutation_order =
+			std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
+				[](size_t o, const std::vector<int>& cycle)
+				{
+					o += (cycle.size() - 1);
+
+					return o;
+				});
+
+		bool is_even_permutation = (permutation_order % 2 == 0);
+
+		if (is_even_permutation)
 		{
-			// state is not a permutation of the solved state
-			m_state = prev_state;
-			m_space_index = prev_space_index;
-
-			return false;
+			m_state = state;
+			m_space_index = space_index;
 		}
 
-		return true;
+		return is_even_permutation;
 	}
 
 	static constexpr size_t size() { return N; }
