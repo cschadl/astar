@@ -16,84 +16,74 @@
 using namespace std;
 using namespace cds::astar;
 using cds::n_sq_puzzle;
+namespace ph = std::placeholders;
 
 template <size_t N>
-struct expand
+vector< n_sq_puzzle<N> > expand(const n_sq_puzzle<N>& p)
 {
-	vector< n_sq_puzzle<N> > operator()(const n_sq_puzzle<N>& p) const
-	{
-		using Move = typename n_sq_puzzle<N>::MoveType;
-	
-		std::vector< n_sq_puzzle<N> > next_states;
-	
-		std::array<Move, 4> moves = { Move::UP, Move::DOWN, Move::LEFT, Move::RIGHT };
-		for (const Move& m : moves)
-			if (p.can_move(m))
-				next_states.push_back(p.moved(m));
-	
-		return next_states;
-	}
-};
+	using Move = typename n_sq_puzzle<N>::MoveType;
+
+	std::vector< n_sq_puzzle<N> > next_states;
+
+	std::array<Move, 4> moves = { Move::UP, Move::DOWN, Move::LEFT, Move::RIGHT };
+	for (const Move& m : moves)
+		if (p.can_move(m))
+			next_states.push_back(p.moved(m));
+
+	return next_states;
+}
 
 template <size_t N>
-struct misplaced_tiles 
+size_t misplaced_tiles(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal)
 {
-	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
-	{
-		auto const& p_state_array = p.get_state();
-		auto const& goal_state_array = goal.get_state();
-	
-		size_t const diff = (N * N) - std::inner_product(
-				p_state_array.begin(), p_state_array.end(),
-				goal_state_array.begin(), 0,
-				std::plus<>(), std::equal_to<>());
-	
-		return diff;
-	}
-};
+	auto const& p_state_array = p.get_state();
+	auto const& goal_state_array = goal.get_state();
+
+	size_t const diff = (N * N) - std::inner_product(
+			p_state_array.begin(), p_state_array.end(),
+			goal_state_array.begin(), 0,
+			std::plus<>(), std::equal_to<>());
+
+	return diff;
+}
 
 template <size_t N>
-struct tile_taxicab_dist
+size_t tile_taxicab_dist(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal)
 {
-	size_t operator()(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal) const
+	size_t taxicab_sum = 0;
+
+	// start at 1, since we don't want to include the empty space
+	for (size_t i = 1 ; i < (N*N) ; i++)
 	{
-		size_t taxicab_sum = 0;
+		int i_p, j_p;
+		std::tie(i_p, j_p) = p.get_ij_of(i);
 
-		// start at 1, since we don't want to include the empty space
-		for (size_t i = 1 ; i < (N*N) ; i++)
-		{
-			int i_p, j_p;
-			std::tie(i_p, j_p) = p.get_ij_of(i);
+		int i_goal, j_goal;
+		std::tie(i_goal, j_goal) = goal.get_ij_of(i);
 
-			int i_goal, j_goal;
-			std::tie(i_goal, j_goal) = goal.get_ij_of(i);
+		size_t const taxicab_x = std::abs(i_goal - i_p);
+		size_t const taxicab_y = std::abs(j_goal - j_p);
 
-			size_t const taxicab_x = std::abs(i_goal - i_p);
-			size_t const taxicab_y = std::abs(j_goal - j_p);
-
-			taxicab_sum += (taxicab_x + taxicab_y);
-		}
-
-		return taxicab_sum;
+		taxicab_sum += (taxicab_x + taxicab_y);
 	}
-};
 
-template <size_t N>
-struct null_heuristic
-{
-	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
-	{
-		return 0;
-	}
-};
+	return taxicab_sum;
+}
 
 template <size_t N>
 struct neighbor_dist 
 {
-	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&) const
+	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&)
 	{
 		return 1;
 	}
+};
+
+enum class HeuristicType
+{
+	MISPLACED,	// # of misplaced tiles
+	TAXICAB,		// distance between tiles in X and Y ("Manhattan" distance)
+	ZERO			// null heuristic (always return 0)
 };
 
 struct puzzle_options
@@ -102,6 +92,8 @@ struct puzzle_options
 	size_t max_cost = std::numeric_limits<size_t>::max();
 	bool use_ida = false;
 	std::vector<int> puzzle_state;
+
+	HeuristicType heuristic_type = HeuristicType::TAXICAB;
 };
 
 template <size_t N>
@@ -144,11 +136,25 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 
 	std::list<puzzle_t> solve_steps;
 
+	std::function<size_t(puzzle_t const&, puzzle_t const&)> h_fn;
+	switch (options.heuristic_type)
+	{
+	case HeuristicType::MISPLACED:
+		h_fn = &misplaced_tiles<N>;
+		break;
+	case HeuristicType::TAXICAB:
+		h_fn = &tile_taxicab_dist<N>;
+		break;
+	case HeuristicType::ZERO:
+		h_fn = [](puzzle_t const&, puzzle_t const&) { return 0; };
+		break;
+	}
+
 	if (options.use_ida)
 		tie(solve_steps, std::ignore) =
-			ida_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{});
+			ida_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{});
 	else
-		solve_steps = a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{},neighbor_dist<Dim>{}, options.max_cost);
+		solve_steps = a_star_search(puz, puz_solved, &expand<Dim>, h_fn,neighbor_dist<Dim>{}, options.max_cost);
 
 	if (solve_steps.empty())
 	{
@@ -224,6 +230,29 @@ bool parse_cmd_line(int argc, char** argv, puzzle_options& options)
 
 			for (std::string const& val_str : state)
 				options.puzzle_state.emplace_back(atoi(val_str.c_str()));
+		}
+		else if (strcmp(argv[arg], "--heuristic") == 0)
+		{
+			if ((arg + 1) >= argc)
+			{
+				std::cerr << "Option requires argument: " << argv[arg] << endl;
+				return false;
+			}
+
+			std::string h_type_str(argv[++arg]);
+			std::transform(h_type_str.begin(), h_type_str.end(), h_type_str.begin(), ::tolower);
+
+			if (strcmp(h_type_str.c_str(), "misplaced") == 0)
+				options.heuristic_type = HeuristicType::MISPLACED;
+			else if (strcmp(h_type_str.c_str(), "taxicab") == 0)
+				options.heuristic_type = HeuristicType::TAXICAB;
+			else if (strcmp(h_type_str.c_str(), "zero") == 0)
+				options.heuristic_type = HeuristicType::ZERO;
+			else
+			{
+				std::cerr << "Unknown heuristic type: " << h_type_str << std::endl;
+				return false;
+			}
 		}
 		else
 		{
