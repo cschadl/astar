@@ -2,6 +2,7 @@
 #include "n_sq_puzzle.hpp"
 
 using namespace std;
+using cds::n_sq_puzzle;
 
 template <size_t N>
 void test_n_sq_puzzle()

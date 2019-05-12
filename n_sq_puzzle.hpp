@@ -14,6 +14,12 @@
 
 #include "cycle_decomposition.hpp"
 
+namespace cds
+{
+
+namespace n_sq_puz_detail_
+{
+
 template <typename T, size_t N, size_t... I>
 auto create_index_array_impl(std::index_sequence<I...>)
 {
@@ -25,6 +31,25 @@ auto create_index_array()
 {
 	return create_index_array_impl<T, N>(std::make_index_sequence<N>{});
 }
+
+template <size_t N>
+constexpr size_t num_digits()
+{
+	if (N == 0)
+		return 1;
+
+	size_t num = N;
+	size_t digits = 0;
+	while (num)
+	{
+		num /= 10;
+		digits++;
+	}
+
+	return digits;
+}
+
+} // n_sq_puz_detail
 
 template <size_t N>
 class n_sq_puzzle
@@ -82,7 +107,7 @@ public:
 	/// Creates a n_sq_puzzle in the solved configuration.
 	/// Use shuffle() to shuffle the puzzle state to a random configuration.
 	n_sq_puzzle()
-		: m_state(create_index_array<int, N * N>())
+		: m_state(n_sq_puz_detail_::create_index_array<int, N * N>())
 	{
 		std::rotate(m_state.begin(), m_state.begin() + 1, m_state.end());
 		m_space_index = N * N - 1;
@@ -312,27 +337,10 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz);
 };
 
-template <size_t N>
-constexpr size_t num_digits()
-{
-	if (N == 0)
-		return 1;
-
-	size_t num = N;
-	size_t digits = 0;
-	while (num)
-	{
-		num /= 10;
-		digits++;
-	}
-
-	return digits;
-}
-
 template <size_t M>
 std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz)
 {
-	constexpr size_t digits = num_digits<M * M - 1>();
+	constexpr size_t digits = n_sq_puz_detail_::num_digits<M * M - 1>();
 
 	for (size_t i = 0 ; i < M ; i++)
 	{
@@ -348,3 +356,5 @@ std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz)
 
 	return os;
 }
+
+} // namespace cds

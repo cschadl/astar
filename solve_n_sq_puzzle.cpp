@@ -15,6 +15,7 @@
 
 using namespace std;
 using namespace cds::astar;
+using cds::n_sq_puzzle;
 
 template <size_t N>
 struct expand
