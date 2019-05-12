@@ -92,12 +92,11 @@ std::list<NodeType> a_star_search(
 {
 	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
 	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
 	using node_info_t = 				detail_::node_info<NodeType, CostFn, Compare>;
 	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
 	using detail_::NodeSetType;
 																
-	fringe_pq_t fringe;
+	std::priority_queue<node_goal_cost_est_t> fringe;
 	node_collection_t nodes;
 	{
 		typename node_collection_t::iterator start_node_it;
