@@ -6,6 +6,9 @@
 #include <numeric>
 #include <list>
 #include <cstring>
+#include <string>
+#include <iterator>
+#include <sstream>
 
 #include "n_sq_puzzle.hpp"
 #include "a_star_search.hpp"
@@ -92,14 +95,46 @@ struct neighbor_dist
 	}
 };
 
+struct puzzle_options
+{
+	size_t dim = 3;
+	size_t max_cost = std::numeric_limits<size_t>::max();
+	bool use_ida = false;
+	std::vector<int> puzzle_state;
+};
+
 template <size_t N>
-bool solve_n_sq_puzzle(size_t max_cost, bool use_ida_search)
+bool solve_n_sq_puzzle(puzzle_options const& options)
 {
 	using puzzle_t = n_sq_puzzle<N>;
+	using state_t = typename puzzle_t::state_t;
 	constexpr size_t Dim = puzzle_t::Dim;
 
 	puzzle_t puz;
-	puz.shuffle();
+	if (!options.puzzle_state.empty())
+	{
+		// Make sure everything is kosher with the state that we passed in
+		if (options.puzzle_state.size() != N*N)
+		{
+			std::cerr << "Invalid puzzle state dimension: " << options.puzzle_state.size() << endl;
+			return false;
+		}
+
+		state_t puzzle_state;
+		std::copy(options.puzzle_state.begin(), options.puzzle_state.end(), puzzle_state.begin());
+
+		// set() validates the state (makes sure it is a permutation of the solved state)
+		if (!puz.set(puzzle_state))
+		{
+			std::cerr << "Puzzle state is not a valid or solvable puzzle state" << endl;
+			return false;
+		}
+	}
+	else
+	{
+		// Solve a random puzzle configuration
+		puz.shuffle();
+	}
 
 	puzzle_t puz_solved;
 
@@ -108,11 +143,11 @@ bool solve_n_sq_puzzle(size_t max_cost, bool use_ida_search)
 
 	std::list<puzzle_t> solve_steps;
 
-	if (use_ida_search)
+	if (options.use_ida)
 		tie(solve_steps, std::ignore) =
 			ida_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{}, neighbor_dist<Dim>{});
 	else
-		solve_steps = a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{},neighbor_dist<Dim>{}, max_cost);
+		solve_steps = a_star_search(puz, puz_solved, expand<Dim>{}, tile_taxicab_dist<Dim>{},neighbor_dist<Dim>{}, options.max_cost);
 
 	if (solve_steps.empty())
 	{
@@ -133,39 +168,91 @@ bool solve_n_sq_puzzle(size_t max_cost, bool use_ida_search)
 	return true;
 }
 
-int main(int argc, char** argv)
+bool parse_cmd_line(int argc, char** argv, puzzle_options& options)
 {
-	size_t puzzle_dim = 3;
-	if (argc > 1)
-		puzzle_dim = atoi(argv[1]);
-
-	size_t max_cost = std::numeric_limits<size_t>::max();
-
-	if (argc > 2)
-		max_cost = atoi(argv[2]);
-	if (max_cost == 0)
+	for (int arg = 1 ; arg < argc ; arg++)
 	{
-		std::cerr << "Invalid max cost value: " << argv[2] << endl;
-		return 1;
+		if (strcmp(argv[arg], "--dim") == 0)
+		{
+			if ((arg + 1) >= argc)
+			{
+				std::cerr << "Option requires argument: " << argv[arg] << endl;
+				return false;
+			}
+
+			size_t dim = atoi(argv[++arg]);
+			if (dim == 0)
+				std::cerr << "Invalid puzzle dimension: " << argv[arg] << endl;
+
+			options.dim = dim;
+		}
+		else if (strcmp(argv[arg], "--max_cost") == 0)
+		{
+			if ((arg + 1) >= argc)
+			{
+				std::cerr << "Option requires argument: " << argv[arg] << endl;
+				return false;
+			}
+
+			size_t max_cost = atoi(argv[++arg]);
+			if (max_cost == 0)
+			{
+				std::cerr << "Invalid max cost value: " << argv[arg] << endl;
+				return false;
+
+				options.max_cost = max_cost;
+			}
+		}
+		else if (strcmp(argv[arg], "--ida") == 0)
+		{
+			options.use_ida = true;
+		}
+		else if (strcmp(argv[arg], "--state") == 0)
+		{
+			if ((arg + 1) >= argc)
+			{
+				std::cerr << "Option requires argument: " << argv[arg] << endl;
+				return false;
+			}
+
+			// Split state input on spaces
+			// We'll check the dimension later on
+			std::string state_str(argv[++arg]);
+			std::istringstream iss(state_str);
+			std::vector<std::string> state(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+
+			for (std::string const& val_str : state)
+				options.puzzle_state.emplace_back(atoi(val_str.c_str()));
+		}
+		else
+		{
+			std::cout << "Unknown command line argument: " << argv[arg] << endl;
+			return false;
+		}
 	}
 
-	bool use_ida = false;
-	if (argc > 3 && ::strcmp(argv[3], "-ida") == 0)
-		use_ida = true;
+	return true;
+}
 
-	switch (puzzle_dim)
+int main(int argc, char** argv)
+{
+	puzzle_options options;
+	if (!parse_cmd_line(argc, argv, options))
+		return 1;
+
+	switch (options.dim)
 	{
 	case 2:
-		solve_n_sq_puzzle<2>(max_cost, use_ida);
+		solve_n_sq_puzzle<2>(options);
 		break;
 	case 3:
-		solve_n_sq_puzzle<3>(max_cost, use_ida);
+		solve_n_sq_puzzle<3>(options);
 		break;
 	case 4:
-		solve_n_sq_puzzle<4>(max_cost, use_ida);
+		solve_n_sq_puzzle<4>(options);
 		break;
 	default:
-		std::cout << "Unsupported puzzle dimension " << puzzle_dim << endl;
+		std::cout << "Unsupported puzzle dimension " << options.dim << endl;
 	}
 
 	return 0;
