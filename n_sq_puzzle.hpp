@@ -46,6 +46,36 @@ private:
 		return std::make_pair(i, j);
 	}
 
+	void move_space_to_lower_right_()
+	{
+		size_t space_i, space_j;
+		std::tie(space_i, space_j) = get_space_ij();
+
+		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
+			move(MoveType::DOWN);
+		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
+			move(MoveType::RIGHT);
+	}
+
+	// return true if state is an even permutation of this state
+	bool is_even_permutation_of_(state_t const& state) const
+	{
+		std::vector< std::vector<int> > state_cycle_decomp;
+		if (!cycle_decomposition(m_state, state, std::back_inserter(state_cycle_decomp)))
+			return false;	// state is not a permutation of m_state
+
+		size_t const permutation_order =
+			std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
+				[](size_t o, const std::vector<int>& cycle)
+				{
+					o += (cycle.size() - 1);
+
+					return o;
+				});
+
+		return (permutation_order % 2 == 0);
+	}
+
 public:
 	static constexpr size_t Dim = N;
 
@@ -71,28 +101,9 @@ public:
 		test_puz.m_state = state;
 		test_puz.m_space_index = space_index;
 
-		size_t space_i, space_j;
-		std::tie(space_i, space_j) = test_puz.get_space_ij();
+		test_puz.move_space_to_lower_right_();
 
-		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
-			test_puz.move(MoveType::DOWN);
-		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
-			test_puz.move(MoveType::RIGHT);
-
-		std::vector< std::vector<int> > state_cycle_decomp;
-		if (!cycle_decomposition(m_state, test_puz.m_state, std::back_inserter(state_cycle_decomp)))
-			return false;	// state is not a permutation of the original state
-
-		size_t const permutation_order =
-			std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
-				[](size_t o, const std::vector<int>& cycle)
-				{
-					o += (cycle.size() - 1);
-
-					return o;
-				});
-
-		bool is_even_permutation = (permutation_order % 2 == 0);
+		bool const is_even_permutation = is_even_permutation_of_(test_puz.m_state);
 
 		if (is_even_permutation)
 		{
@@ -185,13 +196,7 @@ protected:
 		// If they are, move the 0 to some other random space
 		
 		// First, move the empty space (0 element) to the lower right corner
-		size_t space_i, space_j;
-		std::tie(space_i, space_j) = get_space_ij();
-
-		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
-			move(MoveType::DOWN);
-		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
-			move(MoveType::RIGHT);
+		move_space_to_lower_right_();
 
 		if (m_space_index != N*N - 1)
 			throw std::runtime_error("Error moving empty space for permutation configuration!");
@@ -206,20 +211,7 @@ protected:
 			if (shuffled_state == m_state)
 				continue;
 
-			std::vector< std::vector<int> > state_cycle_decomp;
-			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
-				return false;	// state is not a permutation of the original state
-
-			size_t const permutation_order = 
-				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
-					[](size_t o, const std::vector<int>& cycle)
-					{
-						o += (cycle.size() - 1);
-
-						return o;
-					});
-
-			is_even_permutation = (permutation_order % 2 == 0);
+			is_even_permutation = is_even_permutation_of_(shuffled_state);
 		}
 
 		m_state = shuffled_state;
@@ -228,8 +220,8 @@ protected:
 		// Finally, move the space index to a random position 
 		std::mt19937 gen_ij(seed_fn());
 		std::uniform_int_distribution<int> random_ij(0, N - 1);
-		space_i = random_ij(gen_ij);
-		space_j = random_ij(gen_ij);
+		size_t space_i = random_ij(gen_ij);
+		size_t space_j = random_ij(gen_ij);
 
 		for (size_t mv_up = 0; mv_up < (N - 1) - space_i ; mv_up++)
 			move(MoveType::UP);
