@@ -112,6 +112,27 @@ double node_dist(const node& n1, const node& n2)
 	return sqrt((dx*dx) + (dy*dy));
 }
 
+namespace std
+{
+
+template <>
+class hash<node>
+{
+public:
+	size_t operator()(const node& node) const
+	{
+		constexpr unsigned int p1 = 73856093;
+		constexpr unsigned int p2 = 83492791;
+
+		int xi = std::floor(node.x);
+		int yi = std::floor(node.y);
+
+		return (xi * p1) ^ (yi * p2);
+	}
+};
+
+}
+
 double zero_heuristic(const node&, const node&)
 {
 	return 0.0;

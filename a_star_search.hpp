@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <list>
 #include <algorithm>
@@ -36,7 +36,7 @@ enum class NodeSetType
 };
 
 template <typename NodeType, typename InfoType, typename Compare>
-using node_map_iterator_t = typename std::map<NodeType, InfoType, Compare>::iterator;
+using node_map_iterator_t = typename std::pair<const NodeType, InfoType> *;
 
 template <typename NodeType, typename CostFn, typename Compare>
 struct node_info
@@ -44,14 +44,15 @@ struct node_info
 	using iterator_t = node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare>;
 
 	NodeSetType type;
-	iterator_t desc;
 	typename cost_fn_traits<CostFn, NodeType>::value cost_to_node;
+	iterator_t desc;
 
 	node_info() = delete;
 
 	node_info(NodeSetType type, double cost_to_node)
 	: type(type)
 	, cost_to_node(cost_to_node)
+	, desc(nullptr)
 	{
 
 	}
@@ -80,7 +81,7 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
-				typename Compare = std::less<NodeType> >
+				typename Compare = std::hash<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
 	NodeType goal_node,
@@ -93,7 +94,7 @@ std::list<NodeType> a_star_search(
 	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
 	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
 	using node_info_t = 				detail_::node_info<NodeType, CostFn, Compare>;
-	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
+	using node_collection_t =		std::unordered_map<NodeType, node_info_t, Compare>;
 	using detail_::NodeSetType;
 																
 	fringe_pq_t fringe;
@@ -101,7 +102,7 @@ std::list<NodeType> a_star_search(
 	{
 		typename node_collection_t::iterator start_node_it;
 		tie(start_node_it, std::ignore) = nodes.emplace(std::make_pair(start_node, node_info_t(NodeSetType::OPEN, 0.0)));
-		fringe.emplace(node_goal_cost_est_t{start_node_it, cost_fn(start_node, goal_node)});
+		fringe.emplace(node_goal_cost_est_t{&(*start_node_it), cost_fn(start_node, goal_node)});
 	}
 
 	std::list<NodeType> path;
@@ -161,10 +162,10 @@ std::list<NodeType> a_star_search(
 			else if (tentative_g_score >= adj_node_it->second.cost_to_node)
 				continue;	// Sub-optimal path
 
-			adj_node_it->second.desc = n_it;
+			adj_node_it->second.desc = &(*n_it);
 			adj_node_it->second.cost_to_node = tentative_g_score;
 
-			fringe.emplace(node_goal_cost_est_t{adj_node_it, f_score});
+			fringe.emplace(node_goal_cost_est_t{&(*adj_node_it), f_score});
 		}
 	}
 
