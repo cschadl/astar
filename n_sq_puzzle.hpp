@@ -121,18 +121,18 @@ public:
 		return !((*this) == rhs);
 	}
 
+	std::string state_as_string() const
+	{
+		std::stringstream ss;
+		for (auto i : m_state)
+			ss << i;
+
+		return ss.str();
+	}
+
 	bool operator<(const n_sq_puzzle<N>& rhs) const
 	{
-		// No, sir, I don't like it
-		std::stringstream ss1;
-		for (int i : m_state)
-			ss1 << i;
-
-		std::stringstream ss2;
-		for (int i : rhs.m_state)
-			ss2 << i;
-
-		return ss1.str() < ss2.str();
+		return this->state_as_string() < rhs.state_as_string();
 	}
 
 	bool is_solved() const
