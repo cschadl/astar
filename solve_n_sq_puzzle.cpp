@@ -71,7 +71,7 @@ size_t tile_taxicab_dist(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal)
 }
 
 template <size_t N>
-struct neighbor_dist 
+struct neighbor_dist
 {
 	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&)
 	{
@@ -94,6 +94,44 @@ struct puzzle_options
 	std::vector<int> puzzle_state;
 
 	HeuristicType heuristic_type = HeuristicType::TAXICAB;
+};
+
+// hash function for n_sq_puzzle<N>
+namespace std
+{
+	// not sure how to specialize this as a template function
+	template<>
+	class hash< n_sq_puzzle<2> >
+	{
+	public:
+		size_t operator()(n_sq_puzzle<2> const& puz) const
+		{
+			hash<std::string> hash_fn;
+			return hash_fn(puz.state_as_string());
+		}
+	};
+
+	template <>
+	class hash< n_sq_puzzle<3> >
+	{
+	public:
+		size_t operator()(n_sq_puzzle<3> const& puz) const
+		{
+			hash<std::string> hash_fn;
+			return hash_fn(puz.state_as_string());
+		}
+	};
+
+	template <>
+	class hash< n_sq_puzzle<4> >
+	{
+	public:
+		size_t operator()(n_sq_puzzle<4> const& puz) const
+		{
+			hash<std::string> hash_fn;
+			return hash_fn(puz.state_as_string());
+		}
+	};
 };
 
 template <size_t N>
