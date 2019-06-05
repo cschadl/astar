@@ -203,6 +203,13 @@ auto ida_search(
 
 	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
 
+	auto adj_nodes = expand(node);
+	std::sort(adj_nodes.begin(), adj_nodes.end(),
+		[&cost_fn, &goal_node](NodeType const& n1, NodeType const& n2)
+		{
+			return cost_fn(n1, goal_node) < cost_fn(n2, goal_node);
+		});
+
 	for (NodeType const& adj_node : expand(node))
 	{
 		auto adj_node_it = node_set.find(adj_node);
