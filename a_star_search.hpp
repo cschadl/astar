@@ -50,7 +50,7 @@ struct node_info
 
 	node_info() = delete;
 
-	node_info(NodeSetType type, double cost_to_node)
+	node_info(NodeSetType type, typename cost_fn_traits<CostFn, NodeType>::value cost_to_node)
 	: type(type)
 	, cost_to_node(cost_to_node)
 	, desc(nullptr)
@@ -184,16 +184,17 @@ auto ida_search(
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
 		NodeType goal_node,
-		typename cost_fn_traits<CostFn, NodeType>::value cost_to_current_node,
 		typename cost_fn_traits<CostFn, NodeType>::value bound) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
 {
 	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
 	using node_info_t = node_info<NodeType, CostFn, Compare>;
 
 	auto& node_it = path.top();
-	NodeType const& node = node_it->first;
 
-	cost_t f = cost_to_current_node + cost_fn(node, goal_node);
+	NodeType const& node = node_it->first;
+	node_info_t const& node_info = node_it->second;
+
+	cost_t f = node_info.cost_to_node + cost_fn(node, goal_node);
 
 	if (f > bound)
 		return std::make_pair(false, f);
@@ -215,8 +216,20 @@ auto ida_search(
 		auto adj_node_it = node_set.find(adj_node);
 		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
 		{
+			auto cost_to_adj_node = node_info.cost_to_node + neighbor_weight(node, adj_node);
+
 			if (adj_node_it == node_set.end())
-				tie(adj_node_it, std::ignore) = node_set.insert(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, 0.0 }));
+			{
+				tie(adj_node_it, std::ignore) =
+					node_set.emplace(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, cost_to_adj_node }));
+			}
+			else
+			{
+				node_info_t& adj_node_info = adj_node_it->second;
+
+				adj_node_info.type = NodeSetType::CLOSED;
+				adj_node_info.cost_to_node = cost_to_adj_node;
+			}
 
 			path.push(&(*adj_node_it));
 
@@ -228,7 +241,6 @@ auto ida_search(
 							cost_fn, expand,
 							neighbor_weight,
 							goal_node,
-							cost_to_current_node + neighbor_weight(node, adj_node),
 							bound);
 
 			if (t.first)
@@ -269,7 +281,7 @@ ida_star_search(NodeType start_node,
 	std::stack<typename node_info_t::iterator_t> path_stack;
 
 	typename node_set_t::iterator root_it;
-	std::tie(root_it, std::ignore) = node_set.insert(std::make_pair(start_node, node_info_t(detail_::NodeSetType::OPEN, 0.0)));
+	std::tie(root_it, std::ignore) = node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
 	path_stack.push(&(*root_it));
 
 	while (true)
@@ -281,7 +293,7 @@ ida_star_search(NodeType start_node,
 				path_stack,
 				node_set,
 				cost_fn, expand, neighbor_weight_fn,
-				goal_node, 0.0, bound);
+				goal_node, bound);
 
 		if (found)
 		{
