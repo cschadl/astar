@@ -277,15 +277,15 @@ ida_star_search(NodeType start_node,
 
 	cost_t bound = cost_fn(start_node, goal_node);
 
-	node_set_t node_set;
-	std::stack<typename node_info_t::iterator_t> path_stack;
-
-	typename node_set_t::iterator root_it;
-	std::tie(root_it, std::ignore) = node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
-	path_stack.push(&(*root_it));
-
 	while (true)
 	{
+		node_set_t node_set;
+		std::stack<typename node_info_t::iterator_t> path_stack;
+
+		typename node_set_t::iterator root_it;
+		std::tie(root_it, std::ignore) = node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
+		path_stack.push(&(*root_it));
+
 		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
 		bool found = false;
 
