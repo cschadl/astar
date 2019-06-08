@@ -223,13 +223,6 @@ auto ida_search(
 				tie(adj_node_it, std::ignore) =
 					node_set.emplace(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, cost_to_adj_node }));
 			}
-			else
-			{
-				node_info_t& adj_node_info = adj_node_it->second;
-
-				adj_node_info.type = NodeSetType::CLOSED;
-				adj_node_info.cost_to_node = cost_to_adj_node;
-			}
 
 			path.push(&(*adj_node_it));
 
