@@ -214,7 +214,7 @@ auto ida_search(
 	for (NodeType const& adj_node : expand(node))
 	{
 		auto adj_node_it = node_set.find(adj_node);
-		if (adj_node_it == node_set.end() || adj_node_it->second.type == NodeSetType::OPEN)
+		if (adj_node_it == node_set.end())
 		{
 			auto cost_to_adj_node = node_info.cost_to_node + neighbor_weight(node, adj_node);
 
@@ -250,7 +250,12 @@ auto ida_search(
 				min = t.second;
 
 			path.pop();
-			adj_node_it->second.type = NodeSetType::OPEN;	// Mark this node as longer in path
+
+			// Node is no longer in the path, so remove it from the node set
+			// We could also set the node type to OPEN, like we do for regular
+			// A*, (and check for that when we expand) but the idea here
+			// is to save memory at the cost of CPU usage...
+			node_set.erase(adj_node_it);
 		}
 	}
 
