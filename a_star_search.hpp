@@ -36,35 +36,35 @@ enum class NodeSetType
 	CLOSED
 };
 
-template <typename NodeType, typename InfoType, typename Compare>
-using node_map_iterator_t = typename std::pair<const NodeType, InfoType> *;
+// would be nice if I could alias this to std::unordered_map<...>::value_type,
+// but GCC gets pissy about that for some reason.
+template <typename NodeType, typename InfoType>
+using node_map_entry_t = typename std::pair<const NodeType, InfoType>*;
 
-template <typename NodeType, typename CostFn, typename Compare>
+template <typename NodeType, typename CostFn>
 struct node_info
 {
-	using iterator_t = node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare>;
+	using entry_t = node_map_entry_t< NodeType, node_info<NodeType, CostFn> >;
 
 	NodeSetType type;
 	typename cost_fn_traits<CostFn, NodeType>::value cost_to_node;
-	iterator_t desc;
+	entry_t prev_node;	// pointer to previous node (for A* path reconstruction)
 
 	node_info() = delete;
 
 	node_info(NodeSetType type, typename cost_fn_traits<CostFn, NodeType>::value cost_to_node)
 	: type(type)
 	, cost_to_node(cost_to_node)
-	, desc(nullptr)
+	, prev_node(nullptr)
 	{
 
 	}
 };
 
-template <typename NodeType, typename CostFn, typename Compare>
+template <typename NodeType, typename CostFn>
 struct node_goal_cost_estimate
 {
-	using index_t = typename node_info<NodeType, CostFn, Compare>::iterator_t;
-
-	index_t	node_index;
+	typename node_info<NodeType, CostFn>::entry_t	node_index;
 	typename cost_fn_traits<CostFn, NodeType>::value cost;
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
@@ -92,8 +92,8 @@ std::list<NodeType> a_star_search(
 	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
-	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using node_info_t = 				detail_::node_info<NodeType, CostFn, Compare>;
+	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn>;
+	using node_info_t = 				detail_::node_info<NodeType, CostFn>;
 	using node_collection_t =		std::unordered_map<NodeType, node_info_t, Compare>;
 	using detail_::NodeSetType;
 																
@@ -126,9 +126,9 @@ std::list<NodeType> a_star_search(
 			while (next != start_node)
 			{
 				auto n_it = nodes.find(next)->second;
-				auto desc_it = n_it.desc;
+				auto prev_node_it = n_it.prev_node;
 
-				next = desc_it->first;
+				next = prev_node_it->first;
 
 				path.push_front(next);
 			}
@@ -162,7 +162,7 @@ std::list<NodeType> a_star_search(
 			else if (tentative_g_score >= adj_node_it->second.cost_to_node)
 				continue;	// Sub-optimal path
 
-			adj_node_it->second.desc = &(*n_it);
+			adj_node_it->second.prev_node = &(*n_it);
 			adj_node_it->second.cost_to_node = tentative_g_score;
 
 			fringe.emplace(node_goal_cost_est_t{&(*adj_node_it), f_score});
@@ -178,8 +178,8 @@ namespace detail_
 
 template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename Compare>
 auto ida_search(
-		std::stack< node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare> >& path,
-		std::unordered_map<NodeType, node_info<NodeType, CostFn, Compare>, Compare>& node_set,
+		std::stack< typename node_info<NodeType, CostFn>::entry_t >& path,
+		std::unordered_map<NodeType, node_info<NodeType, CostFn>, Compare>& node_set,
 		CostFn cost_fn,
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
@@ -188,7 +188,7 @@ auto ida_search(
 		typename cost_fn_traits<CostFn, NodeType>::value max_cost) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
 {
 	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
-	using node_info_t = node_info<NodeType, CostFn, Compare>;
+	using node_info_t = node_info<NodeType, CostFn>;
 
 	auto& node_it = path.top();
 
@@ -276,7 +276,7 @@ ida_star_search(NodeType start_node,
 					 typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
-	using node_info_t = detail_::node_info<NodeType, CostFn, Compare>;
+	using node_info_t = detail_::node_info<NodeType, CostFn>;
 	using node_set_t = std::unordered_map<NodeType, node_info_t, Compare>;
 
 	cost_t bound = cost_fn(start_node, goal_node);
@@ -284,7 +284,7 @@ ida_star_search(NodeType start_node,
 	while (true)
 	{
 		node_set_t node_set;
-		std::stack<typename node_info_t::iterator_t> path_stack;
+		std::stack<typename node_info_t::entry_t> path_stack;
 
 		typename node_set_t::iterator root_it;
 		std::tie(root_it, std::ignore) = node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
