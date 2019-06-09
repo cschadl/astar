@@ -190,9 +190,9 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 
 	if (options.use_ida)
 		tie(solve_steps, std::ignore) =
-			ida_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{});
+			ida_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, options.max_cost);
 	else
-		solve_steps = a_star_search(puz, puz_solved, &expand<Dim>, h_fn,neighbor_dist<Dim>{}, options.max_cost);
+		solve_steps = a_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, options.max_cost);
 
 	if (solve_steps.empty())
 	{
@@ -240,13 +240,13 @@ bool parse_cmd_line(int argc, char** argv, puzzle_options& options)
 			}
 
 			size_t max_cost = atoi(argv[++arg]);
-			if (max_cost == 0)
+			if (max_cost <= 0)
 			{
 				std::cerr << "Invalid max cost value: " << argv[arg] << endl;
 				return false;
-
-				options.max_cost = max_cost;
 			}
+
+			options.max_cost = max_cost;
 		}
 		else if (strcmp(argv[arg], "--ida") == 0)
 		{

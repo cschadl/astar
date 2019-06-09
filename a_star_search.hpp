@@ -184,7 +184,8 @@ auto ida_search(
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
 		NodeType goal_node,
-		typename cost_fn_traits<CostFn, NodeType>::value bound) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
+		typename cost_fn_traits<CostFn, NodeType>::value bound,
+		typename cost_fn_traits<CostFn, NodeType>::value max_cost) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
 {
 	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
 	using node_info_t = node_info<NodeType, CostFn, Compare>;
@@ -197,6 +198,9 @@ auto ida_search(
 	cost_t f = node_info.cost_to_node + cost_fn(node, goal_node);
 
 	if (f > bound)
+		return std::make_pair(false, f);
+
+	if (f > max_cost)
 		return std::make_pair(false, f);
 
 	if (node == goal_node)
@@ -234,7 +238,8 @@ auto ida_search(
 							cost_fn, expand,
 							neighbor_weight,
 							goal_node,
-							bound);
+							bound,
+							max_cost);
 
 			if (t.first)
 				return t;
@@ -267,7 +272,8 @@ ida_star_search(NodeType start_node,
 					 NodeType goal_node,
 					 ExpandFn expand,
 					 CostFn cost_fn,
-					 WeightFn neighbor_weight_fn)
+					 WeightFn neighbor_weight_fn,
+					 typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
 	using node_info_t = detail_::node_info<NodeType, CostFn, Compare>;
@@ -291,7 +297,7 @@ ida_star_search(NodeType start_node,
 				path_stack,
 				node_set,
 				cost_fn, expand, neighbor_weight_fn,
-				goal_node, bound);
+				goal_node, bound, max_cost);
 
 		if (found)
 		{
@@ -311,6 +317,9 @@ ida_star_search(NodeType start_node,
 			break;	// No path exists
 
 		bound = t;
+
+		if (bound > max_cost)
+			break;
 	}
 
 	return std::make_pair(std::list<NodeType>(), bound);
