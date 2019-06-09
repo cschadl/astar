@@ -82,7 +82,7 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
-				typename Compare = std::hash<NodeType> >
+				typename HashFn = std::hash<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
 	NodeType goal_node,
@@ -94,7 +94,7 @@ std::list<NodeType> a_star_search(
 	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
 	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn>;
 	using node_info_t = 				detail_::node_info<NodeType, CostFn>;
-	using node_collection_t =		std::unordered_map<NodeType, node_info_t, Compare>;
+	using node_collection_t =		std::unordered_map<NodeType, node_info_t, HashFn>;
 	using detail_::NodeSetType;
 																
 	std::priority_queue<node_goal_cost_est_t> fringe;
@@ -176,10 +176,10 @@ std::list<NodeType> a_star_search(
 namespace detail_
 {
 
-template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename Compare>
+template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename HashFn>
 auto ida_search(
 		std::stack< typename node_info<NodeType, CostFn>::entry_t >& path,
-		std::unordered_map<NodeType, node_info<NodeType, CostFn>, Compare>& node_set,
+		std::unordered_map<NodeType, node_info<NodeType, CostFn>, HashFn>& node_set,
 		CostFn cost_fn,
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
@@ -232,7 +232,7 @@ auto ida_search(
 
 			// TODO - no more recursion
 			std::pair<bool, cost_t> t =
-					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, Compare>(
+					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, HashFn>(
 							path,
 							node_set,
 							cost_fn, expand,
@@ -260,13 +260,13 @@ auto ida_search(
 	return std::make_pair(false, min);
 }
 
-} // detail
+} // detail_
 
 template <	typename NodeType,
 				typename ExpandFn,
 				typename CostFn,
 				typename WeightFn,
-				typename Compare = std::hash<NodeType>	>
+				typename HashFn = std::hash<NodeType>	>
 std::pair<std::list<NodeType>, typename detail_::cost_fn_traits<CostFn, NodeType>::value>
 ida_star_search(NodeType start_node,
 					 NodeType goal_node,
@@ -277,7 +277,7 @@ ida_star_search(NodeType start_node,
 {
 	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
 	using node_info_t = detail_::node_info<NodeType, CostFn>;
-	using node_set_t = std::unordered_map<NodeType, node_info_t, Compare>;
+	using node_set_t = std::unordered_map<NodeType, node_info_t, HashFn>;
 
 	cost_t bound = cost_fn(start_node, goal_node);
 
@@ -293,7 +293,7 @@ ida_star_search(NodeType start_node,
 		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
 		bool found = false;
 
-		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, Compare>(
+		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, HashFn>(
 				path_stack,
 				node_set,
 				cost_fn, expand, neighbor_weight_fn,
