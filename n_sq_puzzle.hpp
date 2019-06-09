@@ -14,6 +14,12 @@
 
 #include "cycle_decomposition.hpp"
 
+namespace cds
+{
+
+namespace n_sq_puz_detail_
+{
+
 template <typename T, size_t N, size_t... I>
 auto create_index_array_impl(std::index_sequence<I...>)
 {
@@ -25,6 +31,25 @@ auto create_index_array()
 {
 	return create_index_array_impl<T, N>(std::make_index_sequence<N>{});
 }
+
+template <size_t N>
+constexpr size_t num_digits()
+{
+	if (N == 0)
+		return 1;
+
+	size_t num = N;
+	size_t digits = 0;
+	while (num)
+	{
+		num /= 10;
+		digits++;
+	}
+
+	return digits;
+}
+
+} // n_sq_puz_detail
 
 template <size_t N>
 class n_sq_puzzle
@@ -46,13 +71,43 @@ private:
 		return std::make_pair(i, j);
 	}
 
+	void move_space_to_lower_right_()
+	{
+		size_t space_i, space_j;
+		std::tie(space_i, space_j) = get_space_ij();
+
+		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
+			move(MoveType::DOWN);
+		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
+			move(MoveType::RIGHT);
+	}
+
+	// return true if state is an even permutation of this state
+	bool is_even_permutation_of_(state_t const& state) const
+	{
+		std::vector< std::vector<int> > state_cycle_decomp;
+		if (!cycle_decomposition(m_state, state, std::back_inserter(state_cycle_decomp)))
+			return false;	// state is not a permutation of m_state
+
+		size_t const permutation_order =
+			std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
+				[](size_t o, const std::vector<int>& cycle)
+				{
+					o += (cycle.size() - 1);
+
+					return o;
+				});
+
+		return (permutation_order % 2 == 0);
+	}
+
 public:
 	static constexpr size_t Dim = N;
 
 	/// Creates a n_sq_puzzle in the solved configuration.
-	/// Use shuffle() to shuffle the puzzle state to a random configuration. boom
+	/// Use shuffle() to shuffle the puzzle state to a random configuration.
 	n_sq_puzzle()
-		: m_state(create_index_array<int, N * N>())
+		: m_state(n_sq_puz_detail_::create_index_array<int, N * N>())
 	{
 		std::rotate(m_state.begin(), m_state.begin() + 1, m_state.end());
 		m_space_index = N * N - 1;
@@ -64,22 +119,24 @@ public:
 		if (space_it == state.end())
 			return false;
 
-		auto prev_state = m_state;
-		size_t prev_space_index = m_space_index;
+		size_t space_index = std::distance(state.begin(), space_it);
 
-		m_state = state;
-		m_space_index = std::distance(state.begin(), space_it);
+		// First, move the empty space (0 element) to the lower right corner
+		n_sq_puzzle<N> test_puz;
+		test_puz.m_state = state;
+		test_puz.m_space_index = space_index;
 
-		if (!shuffle())
+		test_puz.move_space_to_lower_right_();
+
+		bool const is_even_permutation = is_even_permutation_of_(test_puz.m_state);
+
+		if (is_even_permutation)
 		{
-			// state is not a permutation of the solved state
-			m_state = prev_state;
-			m_space_index = prev_space_index;
-
-			return false;
+			m_state = state;
+			m_space_index = space_index;
 		}
 
-		return true;
+		return is_even_permutation;
 	}
 
 	static constexpr size_t size() { return N; }
@@ -121,18 +178,18 @@ public:
 		return !((*this) == rhs);
 	}
 
+	std::string state_as_string() const
+	{
+		std::stringstream ss;
+		for (auto i : m_state)
+			ss << i;
+
+		return ss.str();
+	}
+
 	bool operator<(const n_sq_puzzle<N>& rhs) const
 	{
-		// No, sir, I don't like it
-		std::stringstream ss1;
-		for (int i : m_state)
-			ss1 << i;
-
-		std::stringstream ss2;
-		for (int i : rhs.m_state)
-			ss2 << i;
-
-		return ss1.str() < ss2.str();
+		return this->state_as_string() < rhs.state_as_string();
 	}
 
 	bool is_solved() const
@@ -164,13 +221,7 @@ protected:
 		// If they are, move the 0 to some other random space
 		
 		// First, move the empty space (0 element) to the lower right corner
-		size_t space_i, space_j;
-		std::tie(space_i, space_j) = get_space_ij();
-
-		for (size_t mv_down = 0 ; mv_down < (N - 1) - space_i ; mv_down++)
-			move(MoveType::DOWN);
-		for (size_t mv_right = 0 ; mv_right < (N - 1) - space_j ; mv_right++)
-			move(MoveType::RIGHT);
+		move_space_to_lower_right_();
 
 		if (m_space_index != N*N - 1)
 			throw std::runtime_error("Error moving empty space for permutation configuration!");
@@ -185,20 +236,7 @@ protected:
 			if (shuffled_state == m_state)
 				continue;
 
-			std::vector< std::vector<int> > state_cycle_decomp;
-			if (!cycle_decomposition(m_state, shuffled_state, std::back_inserter(state_cycle_decomp)))
-				return false;	// state is not a permutation of the original state
-
-			size_t const permutation_order = 
-				std::accumulate(state_cycle_decomp.begin(), state_cycle_decomp.end(), 0,
-					[](size_t o, const std::vector<int>& cycle)
-					{
-						o += (cycle.size() - 1);
-
-						return o;
-					});
-
-			is_even_permutation = (permutation_order % 2 == 0);
+			is_even_permutation = is_even_permutation_of_(shuffled_state);
 		}
 
 		m_state = shuffled_state;
@@ -207,8 +245,8 @@ protected:
 		// Finally, move the space index to a random position 
 		std::mt19937 gen_ij(seed_fn());
 		std::uniform_int_distribution<int> random_ij(0, N - 1);
-		space_i = random_ij(gen_ij);
-		space_j = random_ij(gen_ij);
+		size_t space_i = random_ij(gen_ij);
+		size_t space_j = random_ij(gen_ij);
 
 		for (size_t mv_up = 0; mv_up < (N - 1) - space_i ; mv_up++)
 			move(MoveType::UP);
@@ -299,27 +337,10 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz);
 };
 
-template <size_t N>
-constexpr size_t num_digits()
-{
-	if (N == 0)
-		return 1;
-
-	size_t num = N;
-	size_t digits = 0;
-	while (num)
-	{
-		num /= 10;
-		digits++;
-	}
-
-	return digits;
-}
-
 template <size_t M>
 std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz)
 {
-	constexpr size_t digits = num_digits<M * M - 1>();
+	constexpr size_t digits = n_sq_puz_detail_::num_digits<M * M - 1>();
 
 	for (size_t i = 0 ; i < M ; i++)
 	{
@@ -335,3 +356,5 @@ std::ostream& operator<<(std::ostream& os, const n_sq_puzzle<M>& puz)
 
 	return os;
 }
+
+} // namespace cds

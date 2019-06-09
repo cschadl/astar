@@ -3,13 +3,14 @@
 
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <list>
 #include <algorithm>
 #include <limits>
 #include <functional>
 #include <queue>
+#include <stack>
 #include <utility>
 
 namespace cds
@@ -35,34 +36,35 @@ enum class NodeSetType
 	CLOSED
 };
 
-template <typename NodeType, typename InfoType, typename Compare>
-using node_map_iterator_t = typename std::map<NodeType, InfoType, Compare>::iterator;
+// would be nice if I could alias this to std::unordered_map<...>::value_type,
+// but GCC gets pissy about that for some reason.
+template <typename NodeType, typename InfoType>
+using node_map_entry_t = typename std::pair<const NodeType, InfoType>*;
 
-template <typename NodeType, typename CostFn, typename Compare>
+template <typename NodeType, typename CostFn>
 struct node_info
 {
-	using iterator_t = node_map_iterator_t<NodeType, node_info<NodeType, CostFn, Compare>, Compare>;
+	using entry_t = node_map_entry_t< NodeType, node_info<NodeType, CostFn> >;
 
 	NodeSetType type;
-	iterator_t desc;
 	typename cost_fn_traits<CostFn, NodeType>::value cost_to_node;
+	entry_t prev_node;	// pointer to previous node (for A* path reconstruction)
 
 	node_info() = delete;
 
-	node_info(NodeSetType type, double cost_to_node)
+	node_info(NodeSetType type, typename cost_fn_traits<CostFn, NodeType>::value cost_to_node)
 	: type(type)
 	, cost_to_node(cost_to_node)
+	, prev_node(nullptr)
 	{
 
 	}
 };
 
-template <typename NodeType, typename CostFn, typename Compare>
+template <typename NodeType, typename CostFn>
 struct node_goal_cost_estimate
 {
-	using index_t = typename node_info<NodeType, CostFn, Compare>::iterator_t;
-
-	index_t	node_index;
+	typename node_info<NodeType, CostFn>::entry_t	node_index;
 	typename cost_fn_traits<CostFn, NodeType>::value cost;
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
@@ -80,7 +82,7 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
-				typename Compare = std::less<NodeType> >
+				typename HashFn = std::hash<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
 	NodeType goal_node,
@@ -90,18 +92,17 @@ std::list<NodeType> a_star_search(
 	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
-	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn, Compare>;
-	using fringe_pq_t = 				std::priority_queue<node_goal_cost_est_t>;
-	using node_info_t = 				detail_::node_info<NodeType, CostFn, Compare>;
-	using node_collection_t =		std::map<NodeType, node_info_t, Compare>;
+	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn>;
+	using node_info_t = 				detail_::node_info<NodeType, CostFn>;
+	using node_collection_t =		std::unordered_map<NodeType, node_info_t, HashFn>;
 	using detail_::NodeSetType;
 																
-	fringe_pq_t fringe;
+	std::priority_queue<node_goal_cost_est_t> fringe;
 	node_collection_t nodes;
 	{
 		typename node_collection_t::iterator start_node_it;
 		tie(start_node_it, std::ignore) = nodes.emplace(std::make_pair(start_node, node_info_t(NodeSetType::OPEN, 0.0)));
-		fringe.emplace(node_goal_cost_est_t{start_node_it, cost_fn(start_node, goal_node)});
+		fringe.emplace(node_goal_cost_est_t{&(*start_node_it), cost_fn(start_node, goal_node)});
 	}
 
 	std::list<NodeType> path;
@@ -125,9 +126,9 @@ std::list<NodeType> a_star_search(
 			while (next != start_node)
 			{
 				auto n_it = nodes.find(next)->second;
-				auto desc_it = n_it.desc;
+				auto prev_node_it = n_it.prev_node;
 
-				next = desc_it->first;
+				next = prev_node_it->first;
 
 				path.push_front(next);
 			}
@@ -161,10 +162,10 @@ std::list<NodeType> a_star_search(
 			else if (tentative_g_score >= adj_node_it->second.cost_to_node)
 				continue;	// Sub-optimal path
 
-			adj_node_it->second.desc = n_it;
+			adj_node_it->second.prev_node = &(*n_it);
 			adj_node_it->second.cost_to_node = tentative_g_score;
 
-			fringe.emplace(node_goal_cost_est_t{adj_node_it, f_score});
+			fringe.emplace(node_goal_cost_est_t{&(*adj_node_it), f_score});
 		}
 	}
 
@@ -172,9 +173,186 @@ std::list<NodeType> a_star_search(
 	return path;
 }
 
+namespace detail_
+{
+
+template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename HashFn>
+auto ida_search(
+		std::stack< typename node_info<NodeType, CostFn>::entry_t >& path,
+		std::unordered_map<NodeType, node_info<NodeType, CostFn>, HashFn>& node_set,
+		CostFn cost_fn,
+		ExpandFn expand,
+		NeighborWeightFn neighbor_weight,
+		NodeType goal_node,
+		typename cost_fn_traits<CostFn, NodeType>::value bound,
+		typename cost_fn_traits<CostFn, NodeType>::value max_cost) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
+{
+	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
+	using node_info_t = node_info<NodeType, CostFn>;
+
+	auto& node_it = path.top();
+
+	NodeType const& node = node_it->first;
+	node_info_t const& node_info = node_it->second;
+
+	cost_t f = node_info.cost_to_node + cost_fn(node, goal_node);
+
+	if (f > bound)
+		return std::make_pair(false, f);
+
+	if (f > max_cost)
+		return std::make_pair(false, f);
+
+	if (node == goal_node)
+		return std::make_pair(true, f);
+
+	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
+
+	auto adj_nodes = expand(node);
+	std::sort(adj_nodes.begin(), adj_nodes.end(),
+		[&cost_fn, &goal_node](NodeType const& n1, NodeType const& n2)
+		{
+			return cost_fn(n1, goal_node) < cost_fn(n2, goal_node);
+		});
+
+	for (NodeType const& adj_node : expand(node))
+	{
+		auto adj_node_it = node_set.find(adj_node);
+		if (adj_node_it == node_set.end())
+		{
+			auto cost_to_adj_node = node_info.cost_to_node + neighbor_weight(node, adj_node);
+
+			if (adj_node_it == node_set.end())
+			{
+				tie(adj_node_it, std::ignore) =
+					node_set.emplace(std::make_pair(adj_node, node_info_t{ NodeSetType::CLOSED, cost_to_adj_node }));
+			}
+
+			path.push(&(*adj_node_it));
+
+			// TODO - no more recursion
+			std::pair<bool, cost_t> t =
+					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, HashFn>(
+							path,
+							node_set,
+							cost_fn, expand,
+							neighbor_weight,
+							goal_node,
+							bound,
+							max_cost);
+
+			if (t.first)
+				return t;
+
+			if (t.second < min)
+				min = t.second;
+
+			path.pop();
+
+			// Node is no longer in the path, so remove it from the node set
+			// We could also set the node type to OPEN, like we do for regular
+			// A*, (and check for that when we expand) but the idea here
+			// is to save memory at the cost of CPU usage...
+			node_set.erase(adj_node_it);
+		}
+	}
+
+	return std::make_pair(false, min);
+}
+
+} // detail_
+
+template <	typename NodeType,
+				typename ExpandFn,
+				typename CostFn,
+				typename WeightFn,
+				typename HashFn = std::hash<NodeType>	>
+std::pair<std::list<NodeType>, typename detail_::cost_fn_traits<CostFn, NodeType>::value>
+ida_star_search(NodeType start_node,
+					 NodeType goal_node,
+					 ExpandFn expand,
+					 CostFn cost_fn,
+					 WeightFn neighbor_weight_fn,
+					 typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
+{
+	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using node_info_t = detail_::node_info<NodeType, CostFn>;
+	using node_set_t = std::unordered_map<NodeType, node_info_t, HashFn>;
+
+	cost_t bound = cost_fn(start_node, goal_node);
+
+	while (true)
+	{
+		node_set_t node_set;
+		std::stack<typename node_info_t::entry_t> path_stack;
+
+		typename node_set_t::iterator root_it;
+		std::tie(root_it, std::ignore) = node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
+		path_stack.push(&(*root_it));
+
+		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
+		bool found = false;
+
+		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, HashFn>(
+				path_stack,
+				node_set,
+				cost_fn, expand, neighbor_weight_fn,
+				goal_node, bound, max_cost);
+
+		if (found)
+		{
+			std::list<NodeType> path;
+
+			while (!path_stack.empty())
+			{
+				NodeType n = path_stack.top()->first;
+				path.emplace_front(std::move(n));
+				path_stack.pop();
+			}
+
+			return std::make_pair(path, bound);
+		}
+
+		if (t == detail_::cost_fn_traits<CostFn, NodeType>::max())
+			break;	// No path exists
+
+		bound = t;
+
+		if (bound > max_cost)
+			break;
+	}
+
+	return std::make_pair(std::list<NodeType>(), bound);
+}
+
 } // namespace astar
 
 } // namespace cds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
