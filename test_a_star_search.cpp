@@ -113,9 +113,25 @@ double node_dist(const node& n1, const node& n2)
 	return sqrt((dx*dx) + (dy*dy));
 }
 
-double zero_heuristic(const node&)
+namespace std
 {
-	return 0.0;
+
+template <>
+class hash<node>
+{
+public:
+	size_t operator()(const node& node) const
+	{
+		constexpr unsigned int p1 = 73856093;
+		constexpr unsigned int p2 = 83492791;
+
+		int xi = std::floor(node.x);
+		int yi = std::floor(node.y);
+
+		return (xi * p1) ^ (yi * p2);
+	}
+};
+
 }
 
 int main(int argc, char** argv)
@@ -134,12 +150,24 @@ int main(int argc, char** argv)
 	node start_node(start_x, start_y, grid_index(start_x, start_y));
 	node goal_node(goal_x, goal_y, grid_index(goal_x, goal_y));
 
-	std::function<double(node const&)> h_fn = std::bind(&node_dist, _1, goal_node);
-	if (argc >= 6 && strcmp(argv[5], "-zero") == 0)
-		h_fn = std::bind(&zero_heuristic, _1);
+	std::function<double(node const&)> h_fn = [&goal_node](node const& n) { return node_dist(n, goal_node); };
+	bool use_ida = false;
 
-	list<node> path = a_star_search(start_node, &expand, h_fn, &node_dist,
-			[&goal_node](node const& n) { return n == goal_node; }, 100.0);
+	if (argc >= 6 && strcmp(argv[5], "-zero") == 0)
+		h_fn = [](node const&) { return 0.0; };
+	else if (argc >= 6 && strcmp(argv[5], "-ida") == 0)
+		use_ida = true;
+
+
+
+	auto goal_fn = [&goal_node](node const& n) { return n == goal_node; };
+
+	list<node> path;
+
+	if (use_ida)
+		tie(path, std::ignore) = ida_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
+	else
+		path = a_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
 
 	if (path.empty())
 		cout << "Couldn't find path to goal" << endl;
