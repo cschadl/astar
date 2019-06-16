@@ -6,10 +6,13 @@
 #include <numeric>
 #include <algorithm>
 #include <fstream>
+#include <functional>
+#include <sstream>
 
 #include "a_star_search.hpp"
 
 using namespace std;
+using namespace cds::astar;
 
 using magic_square_t = std::vector< std::vector<int> >;
 
@@ -92,6 +95,27 @@ int n_sq_diff(magic_square_t const& s1, magic_square_t const& s2)
 			weight+= abs(s1[i][j] - s2[i][j]);
 
 	return weight;
+}
+
+namespace std
+{
+
+template<>
+class hash<magic_square_t>
+{
+public:
+	size_t operator()(magic_square_t const& sq) const
+	{
+		std::ostringstream oss;
+		for (size_t i = 0 ; i < 3 ; i++)
+			for (size_t j = 0 ; j < 3 ; j++)
+				oss << sq[i][j];
+
+		hash<string> str_hash;
+		return str_hash(oss.str());
+	}
+};
+
 }
 
 // is_goal
