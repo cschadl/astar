@@ -32,73 +32,34 @@ static std::vector<magic_square_t> canonical_magic_square = {
 
 }
 
-// expand
+// "basic" expand
+// Just generate successor states by replacing each entry in sq
+// with a different number.  Note that this will generate
+// lots and lots of successor states!
 vector<magic_square_t> expand(magic_square_t const& sq)
 {
 	static std::array<int, 9> ms_numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 	vector<magic_square_t> next_states;
 
-	// Replace a non-distinct number in sq with a number from ms_numbers
-	std::array<int, 9> sq_vals;
 	for (size_t i = 0 ; i < 3 ; i++)
-		for (size_t j = 0 ; j < 3; j++)
-			sq_vals[3 * j + i] = sq[i][j];
-
-	sort(sq_vals.begin(), sq_vals.end());
-
-//	std::vector<int> missing;
-//	std::set_difference(
-//			ms_numbers.begin(), ms_numbers.end(), 
-//			sq_vals.begin(), sq_vals.end(),
-//			back_inserter(missing));
-
-	vector<int> replace;
-
-	auto it = std::adjacent_find(sq_vals.begin(), sq_vals.end()) ;
-	while (it != sq_vals.end())
 	{
-		replace.push_back(*it);
-		it = std::adjacent_find(next(it), sq_vals.end());
-	}
-
-	for (int r : replace)
-	{
-		for (int i = 0; i < 3 ; i++)
+		for (size_t j = 0 ; j < 3 ; j++)
 		{
-			for (int j = 0; j < 3 ; j++)
+			for (size_t k = 0 ; k < 9 ; k++)
 			{
-				if (sq[i][j] == r)
+				if (sq[i][j] != ms_numbers[k])
 				{
-					for (int m : ms_numbers)
-					{
-						magic_square_t sq_next = sq;
-						sq_next[i][j] = m;
+					magic_square_t sq_n = sq;
+					sq_n[i][j] = ms_numbers[k];
 
-						next_states.push_back(sq_next);
-					}
+					next_states.emplace_back(std::move(sq_n));
 				}
 			}
 		}
 	}
 
 	return next_states;
-}
-
-// cost
-int cost_fn(magic_square_t const& sq)
-{
-	std::vector<int> sq_unique(9);
-	for (size_t i = 0 ; i < 3 ; i++)
-		for (size_t j = 0 ; j < 3; j++)
-			sq_unique[3 * j + i] = sq[i][j];
-
-	sort(sq_unique.begin(), sq_unique.end());
-
-	sq_unique.erase(unique(sq_unique.begin(), sq_unique.end()), sq_unique.end());
-
-	int const misplaced = 9 - sq_unique.size();
-	return misplaced;
 }
 
 // weight
@@ -111,6 +72,22 @@ int n_sq_diff(magic_square_t const& s1, magic_square_t const& s2)
 			weight+= abs(s1[i][j] - s2[i][j]);
 
 	return weight;
+}
+
+// heuristic function
+// compares sq with each of the "canonical" magic squares,
+// returns the one with the smallest diff
+int cost_fn(magic_square_t const& sq)
+{
+	auto min_val = std::numeric_limits<int>::max();
+	for (magic_square_t const& canonical_sq : canonical_magic_square)
+	{
+		int const dist = n_sq_diff(sq, canonical_sq);
+		if (dist < min_val)
+			min_val = dist;
+	}
+
+	return min_val;
 }
 
 namespace std
