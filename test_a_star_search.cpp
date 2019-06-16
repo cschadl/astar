@@ -7,6 +7,7 @@
 #include "a_star_search.hpp"
 
 using namespace std;
+using namespace std::placeholders;
 using namespace cds::astar;
 
 namespace
@@ -133,11 +134,6 @@ public:
 
 }
 
-double zero_heuristic(const node&, const node&)
-{
-	return 0.0;
-}
-
 int main(int argc, char** argv)
 {
 	if (argc > 1 && argc < 5)
@@ -151,23 +147,27 @@ int main(int argc, char** argv)
 	int goal_x = argc > 4 ? std::atoi(argv[3]) : 32;
 	int goal_y = argc > 5 ? std::atoi(argv[4]) : 12;
 
-	auto h_fn = &node_dist;
+	node start_node(start_x, start_y, grid_index(start_x, start_y));
+	node goal_node(goal_x, goal_y, grid_index(goal_x, goal_y));
+
+	std::function<double(node const&)> h_fn = [&goal_node](node const& n) { return node_dist(n, goal_node); };
 	bool use_ida = false;
 
 	if (argc >= 6 && strcmp(argv[5], "-zero") == 0)
-		h_fn = &zero_heuristic;
+		h_fn = [](node const&) { return 0.0; };
 	else if (argc >= 6 && strcmp(argv[5], "-ida") == 0)
 		use_ida = true;
 
-	node start_node(start_x, start_y, grid_index(start_x, start_y));
-	node goal_node(goal_x, goal_y, grid_index(goal_x, goal_y));
+
+
+	auto goal_fn = [&goal_node](node const& n) { return n == goal_node; };
 
 	list<node> path;
 
 	if (use_ida)
-		tie(path, std::ignore) = ida_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
+		tie(path, std::ignore) = ida_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
 	else
-		path = a_star_search(start_node, goal_node, &expand, h_fn, &node_dist);
+		path = a_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
 
 	if (path.empty())
 		cout << "Couldn't find path to goal" << endl;

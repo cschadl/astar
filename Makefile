@@ -4,7 +4,7 @@ CFLAGS_DEBUG=-Wall -O0 -g -std=c++14
 OUTDIR=Release
 OUTDIR_DEBUG=Debug
 
-STUFF=test_a_star_search test_n_sq_puzzle solve_n_sq_puzzle test_cycle_decomposition
+STUFF=test_a_star_search test_n_sq_puzzle solve_n_sq_puzzle test_cycle_decomposition solve_magic_square
 
 all: $(STUFF)
 

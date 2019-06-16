@@ -25,7 +25,7 @@ namespace detail_
 template <typename CostFn, typename NodeType>
 struct cost_fn_traits
 {
-	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>(), std::declval<NodeType>()));
+	using value = decltype(std::declval<CostFn>()(std::declval<NodeType>()));
 	
 	static constexpr value max() { return std::numeric_limits<value>::max(); }
 };
@@ -82,13 +82,14 @@ template <	typename NodeType,
 				typename ExpandFn, 
 				typename CostFn,
 				typename WeightFn,
+				typename IsGoalFn,
 				typename HashFn = std::hash<NodeType> >
 std::list<NodeType> a_star_search(
 	NodeType	start_node,
-	NodeType goal_node,
 	ExpandFn	expand_fn,
-	CostFn	cost_fn,
+	CostFn	cost_to_goal_fn,
 	WeightFn	neighbor_weight_fn,
+	IsGoalFn is_goal,
 	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
@@ -102,7 +103,7 @@ std::list<NodeType> a_star_search(
 	{
 		typename node_collection_t::iterator start_node_it;
 		tie(start_node_it, std::ignore) = nodes.emplace(std::make_pair(start_node, node_info_t(NodeSetType::OPEN, 0.0)));
-		fringe.emplace(node_goal_cost_est_t{&(*start_node_it), cost_fn(start_node, goal_node)});
+		fringe.emplace(node_goal_cost_est_t{&(*start_node_it), cost_to_goal_fn(start_node)});
 	}
 
 	std::list<NodeType> path;
@@ -117,7 +118,7 @@ std::list<NodeType> a_star_search(
 
 		NodeType const& n = min_cost_node.node_index->first;
 
-		if (n == goal_node)
+		if (is_goal(n))
 		{
 			NodeType next = n;
 			path.push_front(next);
@@ -152,7 +153,7 @@ std::list<NodeType> a_star_search(
 
 			// Distance from the starting node to a neighbor
 			cost_fn_t const tentative_g_score = n_info.cost_to_node + neighbor_weight_fn(n, adj_node);
-			cost_fn_t const f_score = tentative_g_score + cost_fn(adj_node, goal_node);
+			cost_fn_t const f_score = tentative_g_score + cost_to_goal_fn(adj_node);
 
 			if (adj_node_it == nodes.end())
 			{
@@ -176,14 +177,14 @@ std::list<NodeType> a_star_search(
 namespace detail_
 {
 
-template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename HashFn>
+template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename IsGoalFn, typename HashFn>
 auto ida_search(
 		std::stack< typename node_info<NodeType, CostFn>::entry_t >& path,
 		std::unordered_map<NodeType, node_info<NodeType, CostFn>, HashFn>& node_set,
-		CostFn cost_fn,
+		CostFn cost_to_goal_fn,
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
-		NodeType goal_node,
+		IsGoalFn is_goal_fn,
 		typename cost_fn_traits<CostFn, NodeType>::value bound,
 		typename cost_fn_traits<CostFn, NodeType>::value max_cost) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
 {
@@ -195,7 +196,7 @@ auto ida_search(
 	NodeType const& node = node_it->first;
 	node_info_t const& node_info = node_it->second;
 
-	cost_t f = node_info.cost_to_node + cost_fn(node, goal_node);
+	cost_t f = node_info.cost_to_node + cost_to_goal_fn(node);
 
 	if (f > bound)
 		return std::make_pair(false, f);
@@ -203,16 +204,16 @@ auto ida_search(
 	if (f > max_cost)
 		return std::make_pair(false, f);
 
-	if (node == goal_node)
+	if (is_goal_fn(node))
 		return std::make_pair(true, f);
 
 	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
 
 	auto adj_nodes = expand(node);
 	std::sort(adj_nodes.begin(), adj_nodes.end(),
-		[&cost_fn, &goal_node](NodeType const& n1, NodeType const& n2)
+		[&cost_to_goal_fn](NodeType const& n1, NodeType const& n2)
 		{
-			return cost_fn(n1, goal_node) < cost_fn(n2, goal_node);
+			return cost_to_goal_fn(n1) < cost_to_goal_fn(n2);
 		});
 
 	for (NodeType const& adj_node : expand(node))
@@ -232,12 +233,12 @@ auto ida_search(
 
 			// TODO - no more recursion
 			std::pair<bool, cost_t> t =
-					ida_search<NodeType, CostFn, ExpandFn, NeighborWeightFn, HashFn>(
+					ida_search(
 							path,
 							node_set,
-							cost_fn, expand,
+							cost_to_goal_fn, expand,
 							neighbor_weight,
-							goal_node,
+							is_goal_fn,
 							bound,
 							max_cost);
 
@@ -266,20 +267,21 @@ template <	typename NodeType,
 				typename ExpandFn,
 				typename CostFn,
 				typename WeightFn,
+				typename IsGoalFn,
 				typename HashFn = std::hash<NodeType>	>
 std::pair<std::list<NodeType>, typename detail_::cost_fn_traits<CostFn, NodeType>::value>
 ida_star_search(NodeType start_node,
-					 NodeType goal_node,
 					 ExpandFn expand,
-					 CostFn cost_fn,
+					 CostFn cost_to_goal_fn,
 					 WeightFn neighbor_weight_fn,
+					 IsGoalFn is_goal_fn,
 					 typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
 {
 	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
 	using node_info_t = detail_::node_info<NodeType, CostFn>;
 	using node_set_t = std::unordered_map<NodeType, node_info_t, HashFn>;
 
-	cost_t bound = cost_fn(start_node, goal_node);
+	cost_t bound = cost_to_goal_fn(start_node);
 
 	while (true)
 	{
@@ -293,11 +295,11 @@ ida_star_search(NodeType start_node,
 		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
 		bool found = false;
 
-		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, HashFn>(
+		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, IsGoalFn, HashFn>(
 				path_stack,
 				node_set,
-				cost_fn, expand, neighbor_weight_fn,
-				goal_node, bound, max_cost);
+				cost_to_goal_fn, expand, neighbor_weight_fn,
+				is_goal_fn, bound, max_cost);
 
 		if (found)
 		{
@@ -328,31 +330,6 @@ ida_star_search(NodeType start_node,
 } // namespace astar
 
 } // namespace cds
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

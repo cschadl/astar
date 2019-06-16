@@ -174,25 +174,27 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 
 	std::list<puzzle_t> solve_steps;
 
-	std::function<size_t(puzzle_t const&, puzzle_t const&)> h_fn;
+	std::function<size_t(puzzle_t const&)> h_fn;
 	switch (options.heuristic_type)
 	{
 	case HeuristicType::MISPLACED:
-		h_fn = &misplaced_tiles<N>;
+		h_fn = [&puz_solved](puzzle_t const& puz) { return misplaced_tiles<N>(puz, puz_solved); };
 		break;
 	case HeuristicType::TAXICAB:
-		h_fn = &tile_taxicab_dist<N>;
+		h_fn = [&puz_solved](puzzle_t const& puz) { return tile_taxicab_dist(puz, puz_solved); };
 		break;
 	case HeuristicType::ZERO:
-		h_fn = [](puzzle_t const&, puzzle_t const&) { return 0; };
+		h_fn = [](puzzle_t const&) { return 0; };
 		break;
 	}
 
+	auto goal_fn = [](puzzle_t const& p) { return p.is_solved(); };
+
 	if (options.use_ida)
 		tie(solve_steps, std::ignore) =
-			ida_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, options.max_cost);
+			ida_star_search(puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn, options.max_cost);
 	else
-		solve_steps = a_star_search(puz, puz_solved, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, options.max_cost);
+		solve_steps = a_star_search(puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn, options.max_cost);
 
 	if (solve_steps.empty())
 	{
