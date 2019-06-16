@@ -144,7 +144,7 @@ bool is_magic_square(magic_square_t const& sq)
 		int col_j_sum = 0;
 
 		for (int i = 0 ; i < 3 ; i++)
-			col_j_sum += sq[j][i];
+			col_j_sum += sq[i][j];
 
 		if (col_j_sum != 15)
 			return false;
