@@ -150,11 +150,15 @@ bool is_magic_square(magic_square_t const& sq)
 			return false;
 	}
 
-	size_t diag_sum = 0;
+	size_t diag_sum1 = 0;
 	for (int i = 0 ; i < 3 ; i++)
-		diag_sum += sq[i][i];
+		diag_sum1 += sq[i][i];
 
-	if (diag_sum != 15)
+	if (diag_sum1 != 15)
+		return false;
+
+	size_t const diag_sum2 = sq[0][2] + sq[1][1] + sq[2][0];
+	if (diag_sum2 != 15)
 		return false;
 
 	return true;
