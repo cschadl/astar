@@ -62,6 +62,32 @@ vector<magic_square_t> expand(magic_square_t const& sq)
 	return next_states;
 }
 
+vector<magic_square_t> expand2(magic_square_t const& sq)
+{
+	vector<magic_square_t> next_states;
+
+	// Generate successor states where each entry in sq
+	// is transformed into a canonical magic square entry
+	for (size_t i = 0 ; i < 3 ; i++)
+	{
+		for (size_t j = 0 ; j < 3; j++)
+		{
+			for (magic_square_t const& c_sq : canonical_magic_square)
+			{
+				if (c_sq[i][j] != sq[i][j])
+				{
+					magic_square_t n_sq = sq;
+					n_sq[i][j] = c_sq[i][j];
+
+					next_states.emplace_back(std::move(n_sq));
+				}
+			}
+		}
+	}
+
+	return next_states;
+}
+
 // weight
 int n_sq_diff(magic_square_t const& s1, magic_square_t const& s2)
 {
@@ -160,7 +186,7 @@ bool is_magic_square(magic_square_t const& sq)
 int formingMagicSquare(magic_square_t s)
 {
 	std::list<magic_square_t> states = 
-		a_star_search(s, &expand, &cost_fn, &n_sq_diff, &is_magic_square);
+		a_star_search(s, &expand2, &cost_fn, &n_sq_diff, &is_magic_square);
 
 	if (states.empty())
 		return -1;
