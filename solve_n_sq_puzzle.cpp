@@ -99,40 +99,17 @@ struct puzzle_options
 // hash function for n_sq_puzzle<N>
 namespace std
 {
-	// not sure how to specialize this as a template function
-	template<>
-	class hash< n_sq_puzzle<2> >
+	template<size_t N>
+	class hash< n_sq_puzzle<N> >
 	{
 	public:
-		size_t operator()(n_sq_puzzle<2> const& puz) const
+		size_t operator()(n_sq_puzzle<N> const& puz) const
 		{
 			hash<std::string> hash_fn;
 			return hash_fn(puz.state_as_string());
 		}
 	};
-
-	template <>
-	class hash< n_sq_puzzle<3> >
-	{
-	public:
-		size_t operator()(n_sq_puzzle<3> const& puz) const
-		{
-			hash<std::string> hash_fn;
-			return hash_fn(puz.state_as_string());
-		}
-	};
-
-	template <>
-	class hash< n_sq_puzzle<4> >
-	{
-	public:
-		size_t operator()(n_sq_puzzle<4> const& puz) const
-		{
-			hash<std::string> hash_fn;
-			return hash_fn(puz.state_as_string());
-		}
-	};
-};
+}
 
 template <size_t N>
 bool solve_n_sq_puzzle(puzzle_options const& options)
