@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "n_sq_puzzle.hpp"
-#include "a_star_search.hpp"
+#include <astar/a_star_search.hpp>
 
 using namespace std;
 using namespace cds::astar;

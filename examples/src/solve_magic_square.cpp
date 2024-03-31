@@ -9,7 +9,7 @@
 #include <functional>
 #include <sstream>
 
-#include "a_star_search.hpp"
+#include <astar/a_star_search.hpp>
 
 using namespace std;
 using namespace cds::astar;
