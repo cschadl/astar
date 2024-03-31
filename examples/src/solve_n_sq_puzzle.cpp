@@ -12,6 +12,7 @@
 
 #include "n_sq_puzzle.hpp"
 #include <astar/a_star_search.hpp>
+#include <astar/ida_star_search.hpp>
 
 using namespace std;
 using namespace cds::astar;
