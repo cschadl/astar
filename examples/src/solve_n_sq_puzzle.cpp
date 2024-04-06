@@ -9,6 +9,7 @@
 #include <string>
 #include <iterator>
 #include <sstream>
+#include <optional>
 
 #include "n_sq_puzzle.hpp"
 #include <astar/a_star_search.hpp>
@@ -93,6 +94,7 @@ struct puzzle_options
 	size_t max_cost = std::numeric_limits<size_t>::max();
 	bool use_ida = false;
 	std::vector<int> puzzle_state;
+	std::optional<size_t> shuffle_seed;
 
 	HeuristicType heuristic_type = HeuristicType::TAXICAB;
 };
@@ -142,7 +144,7 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 	else
 	{
 		// Solve a random puzzle configuration
-		puz.shuffle();
+		puz.shuffle(options.shuffle_seed);
 	}
 
 	puzzle_t puz_solved;
@@ -269,6 +271,23 @@ bool parse_cmd_line(int argc, char** argv, puzzle_options& options)
 			else
 			{
 				std::cerr << "Unknown heuristic type: " << h_type_str << std::endl;
+				return false;
+			}
+		}
+		else if (strcmp(argv[arg], "--seed") == 0)
+		{
+			try
+			{
+				options.shuffle_seed = std::stoul(argv[++arg]);
+			}
+			catch (std::invalid_argument&)
+			{
+				std::cout << "Error parsing seed" << std::endl;
+				return false;
+			}
+			catch (std::out_of_range)
+			{
+				std::cout << "specified seed is too large" << std::endl;
 				return false;
 			}
 		}

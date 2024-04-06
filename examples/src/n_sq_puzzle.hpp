@@ -197,15 +197,15 @@ public:
 		return *this == n_sq_puzzle<N>();
 	}
 
-	bool shuffle()
+	bool shuffle(std::optional<unsigned int> seed = std::nullopt)
 	{
-		std::random_device rd;
-		return shuffle_([&rd] { return rd(); });
-	}
+		if (!seed.has_value())
+		{
+			std::random_device rd;
+			return shuffle_([&rd] { return rd(); });
+		}
 
-	bool shuffle(unsigned int seed)
-	{
-		return shuffle_([seed] { return seed; });
+		return shuffle_([s = seed.value()] { return s; });
 	}
 
 protected:
