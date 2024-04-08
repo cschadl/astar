@@ -1,8 +1,10 @@
 #pragma once
 
 #include <astar/detail/node.hpp>
+#include <astar/cost_value.hpp>
 
 #include <stack>
+#include <limits>
 #include <unordered_map>
 
 namespace cds
@@ -22,10 +24,10 @@ auto ida_search(
 		ExpandFn expand,
 		NeighborWeightFn neighbor_weight,
 		IsGoalFn is_goal_fn,
-		typename cost_fn_traits<CostFn, NodeType>::value bound,
-		typename cost_fn_traits<CostFn, NodeType>::value max_cost) -> std::pair<bool, typename cost_fn_traits<CostFn, NodeType>::value>
+		cost_value_t<CostFn, NodeType> bound,
+		cost_value_t<CostFn, NodeType> max_cost) -> std::pair<bool, cost_value_t<CostFn, NodeType>>
 {
-	using cost_t = typename cost_fn_traits<CostFn, NodeType>::value;
+	using cost_t = cost_value_t<CostFn, NodeType>;
 	using node_info_t = node_info<NodeType, CostFn>;
 
 	auto& node_it = path.top();
@@ -44,7 +46,7 @@ auto ida_search(
 	if (is_goal_fn(node))
 		return std::make_pair(true, f);
 
-	cost_t min = cost_fn_traits<CostFn, NodeType>::max();
+	cost_t min = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max();
 
 	auto adj_nodes = expand(node);
 	std::sort(adj_nodes.begin(), adj_nodes.end(),

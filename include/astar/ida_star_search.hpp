@@ -2,6 +2,7 @@
 
 #include <astar/detail/node.hpp>
 #include <astar/detail/ida_search.hpp>
+#include <astar/cost_value.hpp>
 #include <utility>
 #include <stack>
 #include <list>
@@ -18,16 +19,16 @@ template <	typename NodeType,
 				typename WeightFn,
 				typename IsGoalFn,
 				typename HashFn = std::hash<NodeType>	>
-std::pair<std::list<NodeType>, typename detail_::cost_fn_traits<CostFn, NodeType>::value>
-ida_star_search(NodeType start_node,
-					 ExpandFn expand,
-					 CostFn cost_to_goal_fn,
-					 WeightFn neighbor_weight_fn,
-					 IsGoalFn is_goal_fn,
-					 typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = 
-					 	detail_::cost_fn_traits<CostFn, NodeType>::max())
+std::pair<std::list<NodeType>, cost_value_t<CostFn, NodeType>>
+ida_star_search(
+	NodeType start_node,
+	ExpandFn expand,
+	CostFn cost_to_goal_fn,
+	WeightFn neighbor_weight_fn,
+	IsGoalFn is_goal_fn,
+	cost_value_t<CostFn, NodeType> max_cost = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
 {
-	using cost_t = typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using cost_t = cost_value_t<CostFn, NodeType>;
 	using node_info_t = detail_::node_info<NodeType, CostFn>;
 	using node_set_t = std::unordered_map<NodeType, node_info_t, HashFn>;
 
@@ -43,7 +44,7 @@ ida_star_search(NodeType start_node,
 			node_set.emplace(std::make_pair(start_node, node_info_t(detail_::NodeSetType::CLOSED, 0.0)));
 		path_stack.push(&(*root_it));
 
-		cost_t t = detail_::cost_fn_traits<CostFn, NodeType>::max();
+		cost_t t = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max();
 		bool found = false;
 
 		std::tie(found, t) = detail_::ida_search<NodeType, CostFn, ExpandFn, WeightFn, IsGoalFn, HashFn>(
@@ -66,7 +67,7 @@ ida_star_search(NodeType start_node,
 			return std::make_pair(path, bound);
 		}
 
-		if (t == detail_::cost_fn_traits<CostFn, NodeType>::max())
+		if (t == std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
 			break;	// No path exists
 
 		bound = t;

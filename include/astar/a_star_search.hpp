@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <astar/detail/node.hpp>
+#include <astar/cost_value.hpp>
 
 namespace cds
 {
@@ -36,9 +37,9 @@ std::list<NodeType> a_star_search(
 	CostFn	cost_to_goal_fn,
 	WeightFn	neighbor_weight_fn,
 	IsGoalFn is_goal,
-	typename detail_::cost_fn_traits<CostFn, NodeType>::value max_cost = detail_::cost_fn_traits<CostFn, NodeType>::max())
+	cost_value_t<CostFn, NodeType> max_cost = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
 {
-	using cost_fn_t = 				typename detail_::cost_fn_traits<CostFn, NodeType>::value;
+	using cost_fn_t = 				cost_value_t<CostFn, NodeType>;
 	using node_goal_cost_est_t =	detail_::node_goal_cost_estimate<NodeType, CostFn>;
 	using node_info_t = 				detail_::node_info<NodeType, CostFn>;
 	using node_collection_t =		std::unordered_map<NodeType, node_info_t, HashFn>;
