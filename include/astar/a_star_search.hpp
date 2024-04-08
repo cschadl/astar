@@ -51,6 +51,7 @@ std::list<NodeType> a_star_search(
 		typename node_collection_t::iterator start_node_it;
 		tie(start_node_it, std::ignore) = 
 			nodes.emplace(std::make_pair(start_node, node_info_t(NodeSetType::OPEN, 0.0)));
+			
 		fringe.emplace(node_goal_cost_est_t{&(*start_node_it), cost_to_goal_fn(start_node)});
 	}
 
@@ -126,16 +127,3 @@ std::list<NodeType> a_star_search(
 } // namespace astar
 
 } // namespace cds
-
-
-
-
-
-
-
-
-
-
-
-
-
