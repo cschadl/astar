@@ -18,7 +18,7 @@ namespace detail_
 
 template <typename NodeType, typename CostFn, typename ExpandFn, typename NeighborWeightFn, typename IsGoalFn, typename HashFn>
 auto ida_search(
-		std::stack< typename node_info<NodeType, CostFn>::entry_t >& path,
+		std::stack< typename node_info<NodeType, CostFn>::entry_ptr_t >& path,
 		std::unordered_map<NodeType, node_info<NodeType, CostFn>, HashFn>& node_set,
 		CostFn cost_to_goal_fn,
 		ExpandFn expand,

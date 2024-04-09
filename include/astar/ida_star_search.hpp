@@ -37,7 +37,7 @@ ida_star_search(
 	while (true)
 	{
 		node_set_t node_set;
-		std::stack<typename node_info_t::entry_t> path_stack;
+		std::stack<typename node_info_t::entry_ptr_t> path_stack;
 
 		typename node_set_t::iterator root_it;
 		std::tie(root_it, std::ignore) = 

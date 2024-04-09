@@ -23,16 +23,16 @@ enum class NodeSetType
 // would be nice if I could alias this to std::unordered_map<...>::value_type,
 // but GCC gets pissy about that for some reason.
 template <typename NodeType, typename InfoType>
-using node_map_entry_t = typename std::pair<const NodeType, InfoType>*;
+using node_map_entry_ptr_t = typename std::pair<const NodeType, InfoType>*;
 
 template <typename NodeType, typename CostFn>
 struct node_info
 {
-	using entry_t = node_map_entry_t< NodeType, node_info<NodeType, CostFn> >;
+	using entry_ptr_t = node_map_entry_ptr_t< NodeType, node_info<NodeType, CostFn> >;
 
 	NodeSetType type;
 	cost_value_t<CostFn, NodeType> cost_to_node;
-	entry_t prev_node;	// pointer to previous node (for A* path reconstruction)
+	entry_ptr_t prev_node;	// pointer to previous node (for A* path reconstruction)
 
 	node_info() = delete;
 
@@ -48,7 +48,7 @@ struct node_info
 template <typename NodeType, typename CostFn>
 struct node_goal_cost_estimate
 {
-	typename node_info<NodeType, CostFn>::entry_t	node_index;
+	typename node_info<NodeType, CostFn>::entry_ptr_t	node_index;
 	cost_value_t<CostFn, NodeType> cost;
 
 	bool operator<(node_goal_cost_estimate const& rhs) const
