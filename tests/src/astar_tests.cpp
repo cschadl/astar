@@ -1,48 +1,22 @@
 #include <gtest/gtest.h>
 
+#include "adj_list_graph.h"
+#include "grid.h"
+
 #include <astar/a_star_search.hpp>
 #include <n_sq_puzzle.hpp>
 
-#include <map>
-#include <vector>
-#include <utility>
 #include <algorithm>
 #include <functional>
 #include <utility>
+#include <unordered_set>
+#include <limits>
 
 using namespace cds;
 namespace ph = std::placeholders;
 
 namespace
 {
-	using neighbor_weight_t = std::pair<char, int>;
-	using adj_list_graph_t = std::map<char, std::map<char, int>>;
-
-	std::vector<char> expand_adj_list_graph(adj_list_graph_t const& graph, char node)
-	{
-		auto n_it = graph.find(node);
-		if (n_it == graph.end())
-			return std::vector<char>();
-
-		auto const& neighbors = n_it->second;
-		if (neighbors.empty())
-			return std::vector<char>();
-
-		std::vector<char> neighbor_nodes(neighbors.size());
-		std::transform(neighbors.begin(), neighbors.end(),
-			neighbor_nodes.begin(),
-			[](neighbor_weight_t const& nw) { return nw.first; });
-
-		return neighbor_nodes;
-	}
-
-	int neighbor_weight(adj_list_graph_t const& graph, char n, char m)
-	{
-		// does not check that n, m are in graph (we'll throw an exception)
-		auto const& n_neighbors_weights = graph.at(n);
-		return n_neighbors_weights.at(m);
-	}
-
 	int null_heuristic(char)
 	{
 		return 0;
@@ -52,9 +26,17 @@ namespace
 	{
 		return n == 'z';
 	}
+
+	template <typename ValueType, typename Iterator, typename NeighborWeightFn>
+	ValueType get_path_cost(Iterator begin, Iterator end, NeighborWeightFn weight_fn)
+	{
+		return std::inner_product(begin, std::prev(end),
+			std::next(begin),
+			ValueType(0), std::plus<>(), weight_fn);
+	}
 }
 
-TEST(AStarTest, FindShortestPathDijkstra)
+TEST(AStarTest, DijkstraShortestPath)
 {
 	adj_list_graph_t graph = {
 		{ 'a', {{'b', 4 }, {'c', 3}} },
@@ -90,9 +72,100 @@ TEST(AStarTest, FindShortestPathDijkstra)
 	EXPECT_EQ(*(p_it++), 'e');
 	EXPECT_EQ(*(p_it++), 'z');
 
-	auto path_cost = std::inner_product(
-		path.begin(), std::prev(path.end()),
-		std::next(path.begin()), 0, std::plus<>(), neighbor_weight_fn);
+	auto path_cost = get_path_cost<int>(path.begin(), path.end(), neighbor_weight_fn);
 
 	EXPECT_EQ(path_cost, 17);
+}
+
+namespace
+{
+	std::vector<grid_node> expand_grid(
+		std::unordered_set<grid_node> const& obstacle_nodes,
+		grid_node const& grid_min, grid_node const& grid_max,
+		grid_node const& n)
+	{
+		std::vector<grid_node> expand_nodes;
+
+		std::vector<int> node_deltas = { -1, 0, 1 };
+		for (int i = 0 ; i < node_deltas.size() ; i++)
+		{
+			for (int j = 0 ; j < node_deltas.size(); j++)
+			{
+				if (i == 0 && j == 0)
+					continue;
+
+				grid_node expand_node{ n.x + node_deltas[i], n.y + node_deltas[j] };
+
+				if (obstacle_nodes.find(expand_node) != obstacle_nodes.end())
+					continue;
+
+				if (expand_node.x < grid_min.x || expand_node.y < grid_min.y)
+					continue;
+
+				if (expand_node.y > grid_max.x || expand_node.y > grid_max.y)
+					continue;
+
+				expand_nodes.emplace_back(std::move(expand_node));
+			}
+		}
+
+		return expand_nodes;
+	}
+
+	double node_dist(grid_node const& n1, grid_node const& n2)
+	{
+		double const dx = (double) n1.x - (double) n2.x;
+		double const dy = (double) n1.y - (double) n2.y;
+
+		return sqrt((dx*dx) + (dy*dy));
+	}
+}
+
+TEST(AStarTest, ShortestPathGrid)
+{
+	// grid starts at (0,0) in upper left corner, ends at (7, 7) in lower right
+	std::unordered_set<grid_node> obstacles = {
+		grid_node{0, 2}, grid_node{ 0, 3 },
+		grid_node{1, 2},
+		grid_node{3, 2},
+		grid_node{4, 0}, grid_node{4, 2},
+		grid_node{5, 0}, grid_node{5, 1},
+		grid_node{6, 0}, grid_node{6, 1},
+		grid_node{7, 0}, grid_node{7, 1}
+	};
+
+	grid_node const start_node{0, 0};
+	grid_node const goal_node{7, 3};
+
+	auto expand_fn = [&obstacles](grid_node const& n)
+	{
+		return expand_grid(obstacles, grid_node{0, 0}, grid_node{7, 7}, n);
+	};
+
+	auto h_fn = [&goal_node](grid_node const& n)
+	{
+		return node_dist(n, goal_node);
+	};
+
+	auto goal_fn = [&goal_node](grid_node const&n )
+	{
+		return n == goal_node;
+	};
+
+	auto path = astar::a_star_search(grid_node{0, 0}, expand_fn, h_fn, node_dist, goal_fn);
+	ASSERT_FALSE(path.empty());
+
+	double path_cost = get_path_cost<double>(path.begin(), path.end(), node_dist);
+
+	EXPECT_EQ(path.size(), 8);
+	EXPECT_NEAR(path_cost, sqrt(2) * 3 + 4, std::numeric_limits<double>::epsilon() * 100);
+
+	EXPECT_EQ(path.front(), start_node);
+	EXPECT_EQ(path.back(), goal_node);
+	
+	EXPECT_TRUE(std::none_of(path.begin(), path.end(), 
+		[&obstacles](grid_node const& n) { return obstacles.find(n) != obstacles.end(); }));
+
+	EXPECT_TRUE(std::all_of(path.begin(), path.end(),
+		[](grid_node const& n) { return n.x >= 0 && n.y >= 0 && n.x <= 7 && n.y <= 7; }));
 }
