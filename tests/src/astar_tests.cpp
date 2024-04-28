@@ -27,7 +27,8 @@ namespace
 		return n == 'z';
 	}
 
-	template <typename ValueType, typename Iterator, typename NeighborWeightFn>
+	template <typename Iterator, typename NeighborWeightFn,
+		typename ValueType = decltype(std::declval<NeighborWeightFn>()(*std::declval<Iterator>(), *std::declval<Iterator>()))>
 	ValueType get_path_cost(Iterator begin, Iterator end, NeighborWeightFn weight_fn)
 	{
 		return std::inner_product(begin, std::prev(end),
@@ -72,7 +73,7 @@ TEST(AStarTest, DijkstraShortestPath)
 	EXPECT_EQ(*(p_it++), 'e');
 	EXPECT_EQ(*(p_it++), 'z');
 
-	auto path_cost = get_path_cost<int>(path.begin(), path.end(), neighbor_weight_fn);
+	auto path_cost = get_path_cost(path.begin(), path.end(), neighbor_weight_fn);
 
 	EXPECT_EQ(path_cost, 17);
 }
@@ -155,7 +156,7 @@ TEST(AStarTest, ShortestPathGrid)
 	auto path = astar::a_star_search(grid_node{0, 0}, expand_fn, h_fn, node_dist, goal_fn);
 	ASSERT_FALSE(path.empty());
 
-	double path_cost = get_path_cost<double>(path.begin(), path.end(), node_dist);
+	double path_cost = get_path_cost(path.begin(), path.end(), node_dist);
 
 	EXPECT_EQ(path.size(), 8);
 	EXPECT_NEAR(path_cost, sqrt(2) * 3 + 4, std::numeric_limits<double>::epsilon() * 100);
