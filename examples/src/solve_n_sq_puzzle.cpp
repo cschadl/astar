@@ -11,7 +11,7 @@
 #include <sstream>
 #include <optional>
 
-#include "n_sq_puzzle.hpp"
+#include <n_sq_puzzle.hpp>
 #include <astar/a_star_search.hpp>
 #include <astar/ida_star_search.hpp>
 

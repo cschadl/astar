@@ -1,5 +1,6 @@
 #include <iostream>
-#include "n_sq_puzzle.hpp"
+
+#include <n_sq_puzzle.hpp>
 
 using namespace std;
 using cds::n_sq_puzzle;

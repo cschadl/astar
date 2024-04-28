@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "cycle_decomposition.hpp"
+#include <cycle_decomposition.hpp>
 
 int main(int argc, char** argv)
 {
