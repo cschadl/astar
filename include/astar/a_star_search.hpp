@@ -30,13 +30,16 @@ template <	typename NodeType,
 				typename CostFn,
 				typename WeightFn,
 				typename IsGoalFn,
+				typename OutputIterator,
 				typename HashFn = std::hash<NodeType> >
-std::list<NodeType> a_star_search(
+bool a_star_search(
 	NodeType	start_node,
 	ExpandFn	expand_fn,
 	CostFn	cost_to_goal_fn,
 	WeightFn	neighbor_weight_fn,
 	IsGoalFn is_goal,
+	OutputIterator out_it,
+	cost_value_t<CostFn, NodeType>* opt_out_path_cost = nullptr,
 	cost_value_t<CostFn, NodeType> max_cost = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
 {
 	using cost_fn_t = 				cost_value_t<CostFn, NodeType>;
@@ -62,8 +65,12 @@ std::list<NodeType> a_star_search(
 		auto min_cost_node = fringe.top();
 		fringe.pop();
 
+		// Might as well always assign this, even if we don't find a path
+		if (opt_out_path_cost)
+			*opt_out_path_cost = min_cost_node.cost;
+
 		if (min_cost_node.cost > max_cost)
-			break; // We won't find a better solution
+			return false; // We won't find a better solution
 
 		NodeType const& n = min_cost_node.node_index->first;
 
@@ -83,7 +90,9 @@ std::list<NodeType> a_star_search(
 				path.push_front(next);
 			}
 			
-			return path;
+			std::copy(path.begin(), path.end(), out_it);
+
+			return true;
 		}
 
 		auto n_it = nodes.find(n);
@@ -121,7 +130,7 @@ std::list<NodeType> a_star_search(
 	}
 
 	// No path exists
-	return path;
+	return false;
 }
 
 } // namespace astar

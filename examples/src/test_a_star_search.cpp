@@ -164,11 +164,17 @@ int main(int argc, char** argv)
 	auto goal_fn = [&goal_node](node const& n) { return n == goal_node; };
 
 	list<node> path;
+	double cost = 0;
+	bool success = false;
 
 	if (use_ida)
-		tie(path, std::ignore) = ida_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
+	{
+		success = ida_star_search(start_node, &expand, h_fn, &node_dist, goal_fn, std::back_inserter(path));
+	}
 	else
-		path = a_star_search(start_node, &expand, h_fn, &node_dist, goal_fn);
+	{
+		success = a_star_search(start_node, &expand, h_fn, &node_dist, goal_fn, std::back_inserter(path));
+	}
 
 	if (path.empty())
 		cout << "Couldn't find path to goal" << endl;

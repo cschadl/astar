@@ -185,11 +185,15 @@ bool is_magic_square(magic_square_t const& sq)
 
 int formingMagicSquare(magic_square_t s)
 {
-	std::list<magic_square_t> states = 
-		a_star_search(s, &expand2, &cost_fn, &n_sq_diff, &is_magic_square);
+	std::vector<magic_square_t> states;
+	int path_cost;
 
-	if (states.empty())
-		return -1;
+	bool success = a_star_search(
+		s, &expand2, &cost_fn, &n_sq_diff, &is_magic_square,
+		std::back_inserter(states), &path_cost);
+
+	if (!success)
+		return false;
 
 	std::cout << std::endl;
 	for (auto it = states.begin() ; it != states.end() ; ++it)

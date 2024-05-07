@@ -170,17 +170,23 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 
 	auto goal_fn = [](puzzle_t const& p) { return p.is_solved(); };
 
+	bool success = false;
 	if (options.use_ida)
-		tie(solve_steps, std::ignore) =
-			ida_star_search(puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn, options.max_cost);
+	{
+		success = ida_star_search(
+			puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn,
+			std::back_inserter(solve_steps), nullptr, options.max_cost);
+	}
 	else
-		solve_steps = a_star_search(puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn, options.max_cost);
-
-	if (solve_steps.empty())
+	{
+		success = a_star_search(
+			puz, &expand<Dim>, h_fn, neighbor_dist<Dim>{}, goal_fn,
+			std::back_inserter(solve_steps), nullptr, options.max_cost);
+	}
+	
+	if (!success)
 	{
 		cout << "Couldn't find path to goal" << endl;
-
-		return false;
 	}
 	else
 	{
@@ -192,7 +198,7 @@ bool solve_n_sq_puzzle(puzzle_options const& options)
 		}
 	}
 
-	return true;
+	return success;
 }
 
 bool parse_cmd_line(int argc, char** argv, puzzle_options& options)

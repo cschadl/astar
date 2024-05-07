@@ -18,14 +18,16 @@ template <	typename NodeType,
 				typename CostFn,
 				typename WeightFn,
 				typename IsGoalFn,
+				typename OutputIterator,
 				typename HashFn = std::hash<NodeType>	>
-std::pair<std::list<NodeType>, cost_value_t<CostFn, NodeType>>
-ida_star_search(
+bool ida_star_search(
 	NodeType start_node,
 	ExpandFn expand,
 	CostFn cost_to_goal_fn,
 	WeightFn neighbor_weight_fn,
 	IsGoalFn is_goal_fn,
+	OutputIterator out_it,
+	cost_value_t<CostFn, NodeType>* opt_out_path_cost = nullptr,
 	cost_value_t<CostFn, NodeType> max_cost = std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
 {
 	using cost_t = cost_value_t<CostFn, NodeType>;
@@ -53,6 +55,9 @@ ida_star_search(
 				cost_to_goal_fn, expand, neighbor_weight_fn,
 				is_goal_fn, bound, max_cost);
 
+		if (opt_out_path_cost)
+			*opt_out_path_cost = bound;
+
 		if (found)
 		{
 			std::list<NodeType> path;
@@ -64,7 +69,9 @@ ida_star_search(
 				path_stack.pop();
 			}
 
-			return std::make_pair(path, bound);
+			std::copy(path.begin(), path.end(), out_it);
+
+			return true;
 		}
 
 		if (t == std::numeric_limits<cost_value_t<CostFn, NodeType>>::max())
@@ -76,7 +83,7 @@ ida_star_search(
 			break;
 	}
 
-	return std::make_pair(std::list<NodeType>(), bound);
+	return false;
 }
 
 }

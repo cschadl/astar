@@ -61,9 +61,14 @@ TEST(AStarTest, DijkstraShortestPath)
 
 	char start_node = 'a';
 
-	auto path = 
-		astar::a_star_search(start_node, expand_fn, &null_heuristic, neighbor_weight_fn, &is_goal);
+	std::vector<char> path;
+	int path_cost;
 
+	bool found_path = astar::a_star_search(
+		start_node, expand_fn, &null_heuristic, neighbor_weight_fn, &is_goal,
+		std::back_inserter(path), &path_cost);
+	
+	ASSERT_TRUE(found_path);
 	ASSERT_EQ(path.size(), 5);
 	
 	auto p_it = path.begin();
@@ -73,9 +78,10 @@ TEST(AStarTest, DijkstraShortestPath)
 	EXPECT_EQ(*(p_it++), 'e');
 	EXPECT_EQ(*(p_it++), 'z');
 
-	auto path_cost = get_path_cost(path.begin(), path.end(), neighbor_weight_fn);
+	auto computed_path_cost = get_path_cost(path.begin(), path.end(), neighbor_weight_fn);
 
-	EXPECT_EQ(path_cost, 17);
+	EXPECT_EQ(computed_path_cost, 17);
+	EXPECT_EQ(path_cost, computed_path_cost);
 }
 
 namespace
@@ -153,13 +159,21 @@ TEST(AStarTest, ShortestPathGrid)
 		return n == goal_node;
 	};
 
-	auto path = astar::a_star_search(grid_node{0, 0}, expand_fn, h_fn, node_dist, goal_fn);
+	std::vector<grid_node> path;
+	double path_cost;
+
+	bool found_path = astar::a_star_search(
+		grid_node{0, 0}, expand_fn, h_fn, node_dist, goal_fn,
+		std::back_inserter(path), &path_cost);
+
+	ASSERT_TRUE(found_path);
 	ASSERT_FALSE(path.empty());
 
-	double path_cost = get_path_cost(path.begin(), path.end(), node_dist);
+	double computed_path_cost = get_path_cost(path.begin(), path.end(), node_dist);
 
 	EXPECT_EQ(path.size(), 8);
-	EXPECT_NEAR(path_cost, sqrt(2) * 3 + 4, std::numeric_limits<double>::epsilon() * 100);
+	EXPECT_NEAR(computed_path_cost, sqrt(2) * 3 + 4, std::numeric_limits<double>::epsilon() * 100);
+	EXPECT_EQ(computed_path_cost, path_cost);
 
 	EXPECT_EQ(path.front(), start_node);
 	EXPECT_EQ(path.back(), goal_node);
@@ -249,9 +263,13 @@ TEST(AStarSearch, NSqPuzzle)
 
 	auto dist_fn = [](n_sq_puzzle<3> const&, n_sq_puzzle<3> const&) { return 1; };
 
-	auto path = astar::a_star_search(puzzle, &expand<3>, heuristic_fn, dist_fn, is_goal);
-	std::vector<n_sq_puzzle<3>> path_vector;
-	std::copy(path.begin(), path.end(), std::back_inserter(path_vector));
+	std::vector<n_sq_puzzle<3>> path;
+
+	bool found_path = astar::a_star_search(
+		puzzle, &expand<3>, heuristic_fn, dist_fn, is_goal,
+		std::back_inserter(path));
+
+	ASSERT_TRUE(found_path);
 
 	using state_t = n_sq_puzzle<3>::state_t;
 
@@ -277,5 +295,5 @@ TEST(AStarSearch, NSqPuzzle)
 	add_puzzle_state<3>(expected_path, { 1, 2, 3, 4, 5, 6, 7, 8, 0 });
 
 	EXPECT_FALSE(path.empty());
-	EXPECT_EQ(path_vector, expected_path);
+	EXPECT_EQ(path, expected_path);
 }
