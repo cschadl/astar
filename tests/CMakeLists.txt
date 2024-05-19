@@ -1,8 +1,12 @@
 add_executable(tests
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/astar_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ida_star_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/adj_list_graph.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/grid.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/grid.h
+    ${CMAKE_SOURCE_DIR}/examples/include/cycle_decomposition.hpp
+    ${CMAKE_SOURCE_DIR}/examples/include/n_sq_puzzle.hpp
+    ${CMAKE_SOURCE_DIR}/examples/include/solve_helpers.hpp)
 
 target_include_directories(tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -12,6 +12,7 @@
 #include <optional>
 
 #include <n_sq_puzzle.hpp>
+#include <solve_helpers.hpp>
 #include <astar/a_star_search.hpp>
 #include <astar/ida_star_search.hpp>
 
@@ -50,29 +51,6 @@ size_t misplaced_tiles(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal)
 }
 
 template <size_t N>
-size_t tile_taxicab_dist(const n_sq_puzzle<N>& p, const n_sq_puzzle<N>& goal)
-{
-	size_t taxicab_sum = 0;
-
-	// start at 1, since we don't want to include the empty space
-	for (size_t i = 1 ; i < (N*N) ; i++)
-	{
-		int i_p, j_p;
-		std::tie(i_p, j_p) = p.get_ij_of(i);
-
-		int i_goal, j_goal;
-		std::tie(i_goal, j_goal) = goal.get_ij_of(i);
-
-		size_t const taxicab_x = std::abs(i_goal - i_p);
-		size_t const taxicab_y = std::abs(j_goal - j_p);
-
-		taxicab_sum += (taxicab_x + taxicab_y);
-	}
-
-	return taxicab_sum;
-}
-
-template <size_t N>
 struct neighbor_dist
 {
 	size_t operator()(const n_sq_puzzle<N>&, const n_sq_puzzle<N>&)
@@ -98,21 +76,6 @@ struct puzzle_options
 
 	HeuristicType heuristic_type = HeuristicType::TAXICAB;
 };
-
-// hash function for n_sq_puzzle<N>
-namespace std
-{
-	template<size_t N>
-	class hash< n_sq_puzzle<N> >
-	{
-	public:
-		size_t operator()(n_sq_puzzle<N> const& puz) const
-		{
-			hash<std::string> hash_fn;
-			return hash_fn(puz.state_as_string());
-		}
-	};
-}
 
 template <size_t N>
 bool solve_n_sq_puzzle(puzzle_options const& options)
