@@ -1,8 +1,8 @@
 add_executable(tests
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/astar_tests.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ida_star_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shortest_path_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/n_sq_puzzle_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/adj_list_graph.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/grid.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/get_path_cost.h
