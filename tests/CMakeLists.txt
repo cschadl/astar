@@ -1,6 +1,6 @@
 add_executable(tests
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/astar_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dijkstra_search_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shortest_path_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/n_sq_puzzle_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/adj_list_graph.h
