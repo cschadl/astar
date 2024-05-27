@@ -3,7 +3,9 @@ add_executable(tests
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dijkstra_search_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shortest_path_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/n_sq_puzzle_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/solve_n_sq_puzzle_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/get_path_cost.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/cycle_decomposition_tests.cpp
     ${CMAKE_SOURCE_DIR}/examples/include/cycle_decomposition.hpp
     ${CMAKE_SOURCE_DIR}/examples/include/n_sq_puzzle.hpp
     ${CMAKE_SOURCE_DIR}/examples/include/solve_helpers.hpp)
