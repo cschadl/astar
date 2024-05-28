@@ -104,6 +104,8 @@ private:
 public:
 	static constexpr size_t Dim = N;
 
+	static constexpr size_t dim() { return N; }
+
 	/// Creates a n_sq_puzzle in the solved configuration.
 	/// Use shuffle() to shuffle the puzzle state to a random configuration.
 	n_sq_puzzle()
