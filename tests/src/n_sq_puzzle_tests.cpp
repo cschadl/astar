@@ -19,7 +19,7 @@ using NSqPuzzleTestImplementations =
 
 TYPED_TEST_SUITE(NSqPuzzleTest, NSqPuzzleTestImplementations);
 
-TYPED_TEST(NSqPuzzleTest, NSqPuzzleTestImplementations)
+TYPED_TEST(NSqPuzzleTest, DefaultConstructor)
 {
 	auto& puz = this->thePuzzle;
 	ASSERT_TRUE(puz.is_solved());
