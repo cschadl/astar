@@ -90,53 +90,53 @@ namespace
 
 		virtual bool doSearch(char start_node, std::vector<char>& out_path, int& out_path_cost) = 0;
 	};
-
-	class AStarGraphSearchTest : public GraphSearchTest
-	{
-	public:
-		AStarGraphSearchTest()
-			: GraphSearchTest(theGraph)
-		{
-
-		}
-
-		bool doSearch(char start_node, std::vector<char>& out_path, int& out_path_cost)
-		{
-			return astar::a_star_search(
-				start_node,
-				[this](char n) { return this->expand(n); },
-				&null_heuristic,
-				[this](char n, char m) { return this->neighbor_weight(n, m); },
-				&is_goal,
-				std::back_inserter(out_path),
-				&out_path_cost
-			);
-		}
-	};
-
-	class IDAStarGraphSearchTest : public GraphSearchTest
-	{
-	public:
-		IDAStarGraphSearchTest()
-			: GraphSearchTest(theGraph)
-		{
-
-		}
-
-		bool doSearch(char start_node, std::vector<char>& out_path, int& out_path_cost)
-		{
-			return astar::ida_star_search(
-				start_node,
-				[this](char n) { return this->expand(n); },
-				&null_heuristic,
-				[this](char n, char m) { return this->neighbor_weight(n, m); },
-				&is_goal,
-				std::back_inserter(out_path),
-				&out_path_cost
-			);
-		}
-	};
 }
+
+class AStarGraphSearchTest : public GraphSearchTest
+{
+public:
+	AStarGraphSearchTest()
+		: GraphSearchTest(theGraph)
+	{
+
+	}
+
+	bool doSearch(char start_node, std::vector<char>& out_path, int& out_path_cost)
+	{
+		return astar::a_star_search(
+			start_node,
+			[this](char n) { return this->expand(n); },
+			&null_heuristic,
+			[this](char n, char m) { return this->neighbor_weight(n, m); },
+			&is_goal,
+			std::back_inserter(out_path),
+			&out_path_cost
+		);
+	}
+};
+
+class IDAStarGraphSearchTest : public GraphSearchTest
+{
+public:
+	IDAStarGraphSearchTest()
+		: GraphSearchTest(theGraph)
+	{
+
+	}
+
+	bool doSearch(char start_node, std::vector<char>& out_path, int& out_path_cost)
+	{
+		return astar::ida_star_search(
+			start_node,
+			[this](char n) { return this->expand(n); },
+			&null_heuristic,
+			[this](char n, char m) { return this->neighbor_weight(n, m); },
+			&is_goal,
+			std::back_inserter(out_path),
+			&out_path_cost
+		);
+	}
+};
 
 template <typename T>
 class DijkstraGraphSearchTest : public testing::Test
@@ -150,7 +150,7 @@ using DijkstraGraphSearchImplementations =
 
 TYPED_TEST_SUITE(DijkstraGraphSearchTest, DijkstraGraphSearchImplementations);
 
-TYPED_TEST(DijkstraGraphSearchTest, DijkstraGraphSearchImplementations)
+TYPED_TEST(DijkstraGraphSearchTest, ShortestPath)
 {
 	char start_node = 'a';
 

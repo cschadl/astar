@@ -66,43 +66,43 @@ namespace
 
 		virtual bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const = 0;
 	};
-
-	template <size_t Dim>
-	class NSqPuzzleSolverAStar : public NSqPuzzleSolver<Dim>
-	{
-	public:
-		NSqPuzzleSolverAStar() = default;
-
-		bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
-		{
-			return astar::a_star_search(
-				puzzle,
-				[this](auto const& n) { return this->expand(n); },
-				[this](auto const& n) { return this->heuristic(n); },
-				[this](auto const& n, auto const& m) { return this->dist(n, m); },
-				[this](auto const& n) { return this->is_goal(n); },
-				std::back_inserter(path));
-		}
-	};
-
-	template <size_t Dim>
-	class NSqPuzzleSolverIDAStar : public NSqPuzzleSolver<Dim>
-	{
-	public:
-		NSqPuzzleSolverIDAStar() = default;
-
-		bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
-		{
-			return astar::ida_star_search(
-				puzzle,
-				[this](auto const& n) { return this->expand(n); },
-				[this](auto const& n) { return this->heuristic(n); },
-				[this](auto const& n, auto const& m) { return this->dist(n, m); },
-				[this](auto const& n) { return this->is_goal(n); },
-				std::back_inserter(path));
-		}
-	};
 }
+
+template <size_t Dim>
+class NSqPuzzleSolverAStar : public NSqPuzzleSolver<Dim>
+{
+public:
+	NSqPuzzleSolverAStar() = default;
+
+	bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
+	{
+		return astar::a_star_search(
+			puzzle,
+			[this](auto const& n) { return this->expand(n); },
+			[this](auto const& n) { return this->heuristic(n); },
+			[this](auto const& n, auto const& m) { return this->dist(n, m); },
+			[this](auto const& n) { return this->is_goal(n); },
+			std::back_inserter(path));
+	}
+};
+
+template <size_t Dim>
+class NSqPuzzleSolverIDAStar : public NSqPuzzleSolver<Dim>
+{
+public:
+	NSqPuzzleSolverIDAStar() = default;
+
+	bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
+	{
+		return astar::ida_star_search(
+			puzzle,
+			[this](auto const& n) { return this->expand(n); },
+			[this](auto const& n) { return this->heuristic(n); },
+			[this](auto const& n, auto const& m) { return this->dist(n, m); },
+			[this](auto const& n) { return this->is_goal(n); },
+			std::back_inserter(path));
+	}
+};
 
 template <typename T>
 class NSqPuzzleSolverTest : public testing::Test
@@ -120,7 +120,7 @@ using NSqPuzzleSolverTestImplementations =
 
 TYPED_TEST_SUITE(NSqPuzzleSolverTest, NSqPuzzleSolverTestImplementations);
 
-TYPED_TEST(NSqPuzzleSolverTest, NSqPuzzleSolverTestImplementations)
+TYPED_TEST(NSqPuzzleSolverTest, SolveNSqPuzzle)
 {
 	constexpr const size_t dim = TestFixture::dim();
 	auto puzzle = test_puzzle_wrapper<dim>::get_puzzle();

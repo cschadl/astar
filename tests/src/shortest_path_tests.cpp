@@ -136,55 +136,60 @@ namespace
 
 		grid_node const& goal_node() const { return m_goal_node; }
 	};
-
-	class AStarGridSearchTest : public GridSearchTest
-	{
-	public:
-		AStarGridSearchTest()
-			: GridSearchTest(theObstacles, grid_node{7, 3})
-		{
-
-		}
-
-		bool doSearch(
-			grid_node const& start_node,
-			std::vector<grid_node>& out_path, 
-			double& path_cost) override
-		{
-			return astar::a_star_search(
-				start_node,
-				[this](grid_node const& n) { return expand(n); },
-				[this](grid_node const& n) { return heuristic(n); },
-				node_dist,
-				[this](grid_node const& n) { return is_goal(n); },
-				std::back_inserter(out_path), &path_cost);
-		}
-	};
-
-	class IDAStarGridSearchTest : public GridSearchTest
-	{
-	public:
-		IDAStarGridSearchTest()
-			: GridSearchTest(theObstacles, grid_node{7, 3})
-		{
-
-		}
-
-		bool doSearch(
-			grid_node const& start_node,
-			std::vector<grid_node>& out_path, 
-			double& path_cost) override
-		{
-			return astar::ida_star_search(
-				start_node,
-				[this](grid_node const& n) { return expand(n); },
-				[this](grid_node const& n) { return heuristic(n); },
-				node_dist,
-				[this](grid_node const& n) { return is_goal(n); },
-				std::back_inserter(out_path), &path_cost);
-		}
-	};
 }
+
+// These test classes aren't in the anonymous namespace because
+// if we put them there, then the GTest reports e.g.
+// GridSearchShortestPathTest/(anonymous namespace)::AStartGridSearchTest
+// when we run the tests, which is a little hard to read
+
+class AStarGridSearchTest : public GridSearchTest
+{
+public:
+	AStarGridSearchTest()
+		: GridSearchTest(theObstacles, grid_node{7, 3})
+	{
+
+	}
+
+	bool doSearch(
+		grid_node const& start_node,
+		std::vector<grid_node>& out_path, 
+		double& path_cost) override
+	{
+		return astar::a_star_search(
+			start_node,
+			[this](grid_node const& n) { return expand(n); },
+			[this](grid_node const& n) { return heuristic(n); },
+			node_dist,
+			[this](grid_node const& n) { return is_goal(n); },
+			std::back_inserter(out_path), &path_cost);
+	}
+};
+
+class IDAStarGridSearchTest : public GridSearchTest
+{
+public:
+	IDAStarGridSearchTest()
+		: GridSearchTest(theObstacles, grid_node{7, 3})
+	{
+
+	}
+
+	bool doSearch(
+		grid_node const& start_node,
+		std::vector<grid_node>& out_path, 
+		double& path_cost) override
+	{
+		return astar::ida_star_search(
+			start_node,
+			[this](grid_node const& n) { return expand(n); },
+			[this](grid_node const& n) { return heuristic(n); },
+			node_dist,
+			[this](grid_node const& n) { return is_goal(n); },
+			std::back_inserter(out_path), &path_cost);
+	}
+};
 
 template <typename T>
 class GridSearchShortestPathTest : public testing::Test
@@ -198,7 +203,7 @@ using GridSearchShortestPathTestImplementations =
 
 TYPED_TEST_SUITE(GridSearchShortestPathTest, GridSearchShortestPathTestImplementations);
 
-TYPED_TEST(GridSearchShortestPathTest, GridSearchShortestPathTestImplementations)
+TYPED_TEST(GridSearchShortestPathTest, ShortestPath)
 {
 	grid_node const start_node{0, 0};
 
