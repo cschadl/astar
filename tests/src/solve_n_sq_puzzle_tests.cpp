@@ -76,7 +76,10 @@ namespace
 			return cds::expand<Dim>(p);
 		}
 
-		virtual bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const = 0;
+		virtual bool solve(
+			n_sq_puzzle<Dim> const& puzzle,
+			std::vector<n_sq_puzzle<Dim>>& path,
+			std::optional<int> max_cost = std::nullopt) const = 0;
 	};
 }
 
@@ -86,7 +89,10 @@ class NSqPuzzleSolverAStar : public NSqPuzzleSolver<Dim>
 public:
 	NSqPuzzleSolverAStar() = default;
 
-	bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
+	bool solve(
+		n_sq_puzzle<Dim> const& puzzle,
+		std::vector<n_sq_puzzle<Dim>>& path,
+		std::optional<int> max_cost = std::nullopt) const override
 	{
 		return astar::a_star_search(
 			puzzle,
@@ -94,7 +100,9 @@ public:
 			[this](auto const& n) { return this->heuristic(n); },
 			[this](auto const& n, auto const& m) { return this->dist(n, m); },
 			[this](auto const& n) { return this->is_goal(n); },
-			std::back_inserter(path));
+			std::back_inserter(path),
+			nullptr /* out path cost */,
+			max_cost.value_or(std::numeric_limits<int>::max()));
 	}
 };
 
@@ -104,7 +112,10 @@ class NSqPuzzleSolverIDAStar : public NSqPuzzleSolver<Dim>
 public:
 	NSqPuzzleSolverIDAStar() = default;
 
-	bool solve(n_sq_puzzle<Dim> const& puzzle, std::vector<n_sq_puzzle<Dim>>& path) const override
+	bool solve(
+		n_sq_puzzle<Dim> const& puzzle,
+		std::vector<n_sq_puzzle<Dim>>& path,
+		std::optional<int> max_cost = std::nullopt) const override
 	{
 		return astar::ida_star_search(
 			puzzle,
@@ -112,7 +123,9 @@ public:
 			[this](auto const& n) { return this->heuristic(n); },
 			[this](auto const& n, auto const& m) { return this->dist(n, m); },
 			[this](auto const& n) { return this->is_goal(n); },
-			std::back_inserter(path));
+			std::back_inserter(path),
+			nullptr,
+			max_cost.value_or(std::numeric_limits<int>::max()));
 	}
 };
 
@@ -164,4 +177,15 @@ TYPED_TEST(NSqPuzzleSolverTest, SolveNSqPuzzle)
 
 		EXPECT_TRUE(found_move) << *p_it << " cannot be moved to " << *std::next(p_it);
 	}
+}
+
+TYPED_TEST(NSqPuzzleSolverTest, ExceedsMaxCost)
+{
+	constexpr const size_t dim = TestFixture::dim();
+	auto puzzle = test_puzzle_wrapper<dim>::get_puzzle();
+
+	auto max_cost = test_puzzle_wrapper<dim>::expected_n_moves() / 2;
+	
+	std::vector<n_sq_puzzle<dim>> path;
+	EXPECT_FALSE(this->theTest.solve(puzzle, path, max_cost));
 }
